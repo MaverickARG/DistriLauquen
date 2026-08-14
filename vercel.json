@@ -3,27 +3,27 @@
   "builds": [
     {
       "src": "frontend/package.json",
-      "use": "@vercel/vite",
+      "use": "@vercel/static-build",
       "config": {
-        "project": "frontend"
+        "distDir": "dist"
       }
     },
     {
       "src": "backend/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["backend/scripts/parse_excel.py"]
+        "includeFiles": ["backend/repuestos_unificados.json"]
       }
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/backend/index.js"
+      "src": "/api/(.*)",
+      "dest": "/backend/index.js"
     },
     {
-      "source": "/(.*)",
-      "destination": "/frontend/index.html"
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
     }
   ]
 }
