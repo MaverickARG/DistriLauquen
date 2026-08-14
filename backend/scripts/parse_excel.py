@@ -6,10 +6,13 @@ import sys
 # Subimos 2 niveles desde backend/scripts para llegar a la raíz del proyecto
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
+IS_VERCEL = os.environ.get('VERCEL') == '1'
+WRITABLE_DIR = '/tmp' if IS_VERCEL else os.path.join(BASE_DIR, "backend")
+DATA_DIR = '/tmp' if IS_VERCEL else os.path.join(BASE_DIR, "data")
 
 # Rutas exactas
-OUTPUT_PATH_MECANICOS = os.path.join(BASE_DIR, "backend", "repuestos_mecanicos.json")
-OUTPUT_PATH_FINALES = os.path.join(BASE_DIR, "backend", "repuestos_finales.json")
+OUTPUT_PATH_MECANICOS = os.path.join(WRITABLE_DIR, "repuestos_mecanicos.json")
+OUTPUT_PATH_FINALES = os.path.join(WRITABLE_DIR, "repuestos_finales.json")
 
 def limpiar_valor(val):
     if pd.isna(val):
@@ -69,10 +72,10 @@ def main():
     list_type = sys.argv[1]
     
     if list_type == 'mecanicos':
-        excel_path = os.path.join(BASE_DIR, "data", "distribuidor.xlsx")
+        excel_path = os.path.join(DATA_DIR, "distribuidor.xlsx")
         output_path = OUTPUT_PATH_MECANICOS
     else: # finales
-        excel_path = os.path.join(BASE_DIR, "data", "final.xlsx")
+        excel_path = os.path.join(DATA_DIR, "final.xlsx")
         output_path = OUTPUT_PATH_FINALES
 
     print(f"[INFO] Buscando archivo para lista '{list_type}' en: {excel_path}")
