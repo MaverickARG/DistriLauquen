@@ -1,0 +1,401 @@
+﻿.hero {
+  position: relative;
+  height: calc(100vh - 80px); /* Altura total menos el header */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 80px;
+  background-image: url('/src/assets/hero-background.jpeg');
+  background-size: cover;
+  background-position: center;
+  color: var(--text-primary);
+}
+
+.heroOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0.7) 50%, rgba(5, 5, 5, 0.2) 100%);
+  z-index: 1;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+  max-width: 650px;
+}
+
+.title {
+  font-size: 4rem; /* 64px */
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 24px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.highlight {
+  color: var(--brand-yellow);
+}
+
+.description {
+  font-size: 1.125rem; /* 18px */
+  color: var(--text-secondary);
+  max-width: 550px;
+  margin: 0 0 40px 0;
+  line-height: 1.6;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.ctaPrimary,
+.ctaSecondary {
+  padding: 14px 32px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 6px;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.ctaPrimary {
+  background-color: var(--brand-yellow);
+  color: var(--bg-black);
+  border: 2px solid var(--brand-yellow);
+}
+
+.ctaPrimary:hover {
+  background-color: var(--brand-yellow-dark);
+  border-color: var(--brand-yellow-dark);
+  color: var(--bg-black);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 184, 0, 0.2);
+}
+
+.ctaSecondary {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 2px solid var(--metal-gray);
+}
+
+.ctaSecondary:hover {
+  background-color: var(--brand-yellow);
+  color: var(--bg-black);
+  border-color: var(--brand-yellow);
+  transform: translateY(-2px);
+}
+
+/* --- Secciones Generales --- */
+.section {
+  padding: 120px 80px;
+}
+
+.sectionTitle {
+  font-size: 2.5rem; /* 40px */
+  font-weight: 800;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 60px;
+}
+
+.sectionDescription {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* --- Sección "Quiénes Somos" --- */
+.aboutSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 80px;
+  background-color: var(--bg-dark);
+}
+
+.aboutContent {
+  max-width: 550px;
+}
+
+.aboutContent .sectionTitle {
+  text-align: left;
+  font-size: 2.25rem; /* 36px */
+}
+
+.aboutImageContainer {
+  position: relative;
+  height: 450px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.aboutVideo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translate(-50%, -50%);
+}
+
+/* --- Sección "Qué Hacemos" --- */
+.servicesSection {
+  background-color: var(--bg-black);
+}
+
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+
+.serviceCard {
+  background-color: var(--bg-card);
+  padding: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.serviceCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.serviceIcon {
+  color: var(--brand-yellow);
+  margin-bottom: 24px;
+}
+
+.serviceCard h3 {
+  font-size: 1.5rem; /* 24px */
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.serviceCard p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* --- Sección "Clientes" --- */
+/* Renamed to Marcas */
+.clientsSection {
+  background-color: var(--bg-black);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.brandsImage {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* --- Sección "Ubicación" --- */
+.locationSection {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  align-items: center;
+  min-height: 70vh;
+}
+
+.locationContent {
+  padding: 80px;
+}
+
+.locationContent .sectionTitle {
+  text-align: left;
+}
+
+.address {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+}
+
+.mapContainer {
+  height: 100%;
+  min-height: 500px;
+}
+
+.mapIframe {
+  border: 0;
+  filter: grayscale(1) invert(0.9);
+}
+
+/* --- Sección "Contacto" --- */
+.contactSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  background-color: var(--bg-dark);
+}
+
+.contactInfo .sectionTitle {
+  text-align: left;
+}
+
+.contactDetails {
+  margin-top: 30px;
+}
+
+.contactDetails p,
+.contactDetails a.contactLink {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.3s ease;
+  margin: 0 0 15px 0;
+}
+
+.contactDetails a.contactLink:hover {
+  color: var(--brand-yellow);
+}
+
+.officeHours {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.officeHours h4 {
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+  color: var(--brand-yellow);
+  margin-bottom: 16px;
+}
+
+.officeHours p {
+  margin: 4px 0;
+  color: var(--text-secondary);
+}
+
+.contactDetails p svg {
+  color: var(--brand-yellow);
+}
+
+.contactForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+}
+
+.contactForm input,
+.contactForm textarea {
+  background-color: var(--bg-black);
+  border-color: var(--metal-gray);
+  padding: 16px;
+}
+
+.contactForm textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.contactForm .ctaPrimary {
+  width: 100%;
+  padding: 16px 32px;
+  font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero {
+    padding: 0 20px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .title {
+    font-size: 2.5rem; /* 40px */
+  }
+
+  .description {
+    font-size: 1rem; /* 16px */
+  }
+
+  .buttonGroup {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+
+  .ctaPrimary,
+  .ctaSecondary {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .section {
+    padding: 60px 20px;
+  }
+
+  .clientsSection {
+    /* padding ya definido en .section */
+  }
+
+  .aboutSection {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .aboutContent .sectionTitle {
+    text-align: center;
+  }
+
+  .servicesSection {
+    /* padding ya definido en .section */
+  }
+
+  .servicesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .locationSection {
+    grid-template-columns: 1fr;
+  }
+
+  .locationContent {
+    text-align: center;
+  }
+
+  .locationContent .sectionTitle {
+    text-align: center;
+  }
+
+  .contactSection {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}

@@ -1,14 +1,15 @@
 import os
 import json
 import pandas as pd
+import sys
 
 # Subimos 2 niveles desde backend/scripts para llegar a la raíz del proyecto
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 
 # Rutas exactas
-EXCEL_PATH = os.path.join(BASE_DIR, "data", "DL 13-08-2026.XLSX")
-OUTPUT_PATH = os.path.join(BASE_DIR, "backend", "repuestos_unificados.json")
+OUTPUT_PATH_MECANICOS = os.path.join(BASE_DIR, "backend", "repuestos_mecanicos.json")
+OUTPUT_PATH_FINALES = os.path.join(BASE_DIR, "backend", "repuestos_finales.json")
 
 def limpiar_valor(val):
     if pd.isna(val):
@@ -34,10 +35,19 @@ def procesar_hoja(xls, sheet_name):
         precios = []
         for val in valores_validos:
             try:
-                val_num = float(str(val).replace(",", "."))
+                val_str = str(val).replace("$", "").strip()
+                
+                # Si hay puntos y comas, asumimos que el punto es de miles (formato AR)
+                if '.' in val_str and ',' in val_str:
+                    val_str = val_str.replace('.', '')
+                
+                # La coma siempre se trata como separador decimal
+                val_str = val_str.replace(',', '.')
+                
+                val_num = float(val_str)
                 if val_num > 0:
                     precios.append(val_num)
-            except ValueError:
+            except (ValueError, TypeError):
                 pass
 
         if precios and len(valores_validos) >= 2:
@@ -52,31 +62,46 @@ def procesar_hoja(xls, sheet_name):
     return filas_procesadas
 
 def main():
-    print(f"🔍 Buscando archivo en: {EXCEL_PATH}")
-    if not os.path.exists(EXCEL_PATH):
-        print(f"❌ Error: No se encontró el Excel en esa ruta.")
-        print("Verificá que el archivo se llame exactamente 'DL 13-08-2026.XLSX' y esté dentro de la carpeta 'data'.")
-        return
+    if len(sys.argv) < 2 or sys.argv[1] not in ['mecanicos', 'finales']:
+        print("[ERROR] Tipo de lista inválido. Debe ser 'mecanicos' o 'finales'.")
+        sys.exit(1)
 
-    print("📖 Leyendo Excel y procesando hojas...")
-    xls = pd.ExcelFile(EXCEL_PATH)
+    list_type = sys.argv[1]
+    
+    if list_type == 'mecanicos':
+        excel_path = os.path.join(BASE_DIR, "data", "distribuidor.xlsx")
+        output_path = OUTPUT_PATH_MECANICOS
+    else: # finales
+        excel_path = os.path.join(BASE_DIR, "data", "final.xlsx")
+        output_path = OUTPUT_PATH_FINALES
+
+    print(f"[INFO] Buscando archivo para lista '{list_type}' en: {excel_path}")
+    if not os.path.exists(excel_path):
+        filename = 'distribuidor.xlsx' if list_type == 'mecanicos' else 'final.xlsx'
+        print(f"[ERROR] No se encontró el archivo Excel en la ruta esperada. Asegúrate de que el archivo se llame '{filename}'.")
+        sys.exit(1)
+
+    print("[INFO] Leyendo Excel y procesando hojas...")
+    xls = pd.ExcelFile(excel_path)
     total_repuestos = []
     
     for sheet in xls.sheet_names:
-        if sheet.strip().upper() == "INDICE":
+        sheet_upper = sheet.strip().upper()
+        if sheet_upper == "INDICE":
             continue
         
+        print(f"  -> Procesando hoja: '{sheet}'...")
         repuestos_hoja = procesar_hoja(xls, sheet)
         total_repuestos.extend(repuestos_hoja)
-        print(f"  ✔️ [{sheet}]: {len(repuestos_hoja)} repuestos extraídos.")
+        print(f"     + {len(repuestos_hoja)} artículos extraídos.")
 
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(total_repuestos, f, ensure_ascii=False, indent=2)
 
     print("\n" + "="*50)
-    print(f"🎉 ¡Proceso finalizado con éxito!")
-    print(f"📦 Total de artículos: {len(total_repuestos)}")
-    print(f"💾 Guardado en: {OUTPUT_PATH}")
+    print(f"[SUCCESS] ¡Proceso para lista '{list_type}' finalizado con éxito!")
+    print(f"  - Total de artículos procesados: {len(total_repuestos)}")
+    print(f"  - Guardado en: {output_path}")
     print("="*50)
 
 if __name__ == "__main__":
