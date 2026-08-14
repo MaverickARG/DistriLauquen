@@ -30,7 +30,10 @@ app.use(cors());
 app.use(express.json());
 
 // --- Lógica de Almacenamiento de Usuarios (Temporalmente en JSON) ---
-const USERS_PATH = path.join(__dirname, 'users.json');
+// En Vercel, solo podemos escribir en el directorio /tmp
+const IS_VERCEL = process.env.VERCEL === '1';
+const WRITABLE_DIR = IS_VERCEL ? '/tmp' : __dirname;
+const USERS_PATH = path.join(WRITABLE_DIR, 'users.json');
 
 function getUsers() {
   if (!fs.existsSync(USERS_PATH)) return [];
@@ -80,12 +83,9 @@ function saveUsers(users) {
 // --- Configuración de Multer para subida de archivos ---
 const createStorage = (fileName) => {
   return multer.diskStorage({
-    destination: function (req, file, cb) {
-      const dataDir = path.join(__dirname, '..', 'data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      cb(null, dataDir);
+    destination: function (req, file, cb) {      
+      const destDir = IS_VERCEL ? '/tmp' : path.join(__dirname, '..', 'data');
+      cb(null, destDir);
     },
     filename: function (req, file, cb) {
       cb(null, fileName);
@@ -122,8 +122,8 @@ const uploadFinales = multer({ storage: createStorage('final.xlsx') });
 
 
 // --- Lógica del Catálogo ---
-const MECANICOS_JSON_PATH = path.join(__dirname, 'repuestos_mecanicos.json');
-const FINALES_JSON_PATH = path.join(__dirname, 'repuestos_finales.json');
+const MECANICOS_JSON_PATH = path.join(WRITABLE_DIR, 'repuestos_mecanicos.json');
+const FINALES_JSON_PATH = path.join(WRITABLE_DIR, 'repuestos_finales.json');
 let repuestos = {
   mecanicos: [],
   finales: []
