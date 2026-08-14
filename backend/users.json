@@ -6,7 +6,11 @@
     "password": "$2a$10$Y3Q0uIGsEVzl1rhop49zG.ojV6yVmcjLy48BdVJrIWQRlYFhQbuOm",
     "role": "admin",
     "lista_precios": "distribuidores",
-    "createdAt": "2026-08-14T01:13:43.965Z"
+    "createdAt": "2026-08-14T01:13:43.965Z",
+    "nombre": "Matias",
+    "apellido": "Alcalde",
+    "telefono": "111111111",
+    "cuit": "2030863100"
   },
   {
     "id": 2,
@@ -15,9 +19,10 @@
     "telefono": "1165064812",
     "cuit": "20-30826310-0",
     "email": "ventas@conexhard.com.ar",
-    "password": "$2a$10$ZSYKF5UTPz9Qxq8iwqiOs.Tw6zV3zIbS419qOkIW7GV2dsqMhmCCu",
+    "password": "$2a$10$mDLCUcFfLp0.IESpFmbzp.DjkXv1DeNkQ9tf3wZV6T2z3BV8ZUf5K",
     "role": "cliente",
     "lista_precios": "distribuidores",
-    "createdAt": "2026-08-14T20:13:51.119Z"
+    "createdAt": "2026-08-14T21:14:35.157Z",
+    "nombre": "Adrian"
   }
 ]

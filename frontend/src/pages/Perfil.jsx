@@ -8,6 +8,7 @@ export default function Perfil() {
   const { user, token, login } = useAuth();
 
   const [formData, setFormData] = useState({
+    nombre: '',
     apellido: '',
     telefono: '',
     cuit: '',
@@ -31,6 +32,7 @@ export default function Perfil() {
           if (!res.ok) throw new Error('No se pudieron cargar los datos del usuario.');
           const fullUser = await res.json();
           setFormData({
+            nombre: fullUser.nombre || '',
             apellido: fullUser.apellido || '',
             telefono: fullUser.telefono || '',
             cuit: fullUser.cuit || '',
@@ -56,6 +58,10 @@ export default function Perfil() {
 
     if (/\d/.test(formData.apellido)) {
       setError('El apellido no debe contener números.');
+      return;
+    }
+    if (/\d/.test(formData.nombre)) {
+      setError('El nombre no debe contener números.');
       return;
     }
     if (!/^\d{2}-\d{8}-\d{1}$/.test(formData.cuit)) {
@@ -114,6 +120,10 @@ export default function Perfil() {
           </div>
 
           {/* Campos editables */}
+          <div style={{ marginBottom: '20px' }}>
+            <label htmlFor="nombre" style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nombre</label>
+            <input id="nombre" name="nombre" type="text" value={formData.nombre} onChange={handleChange} required style={{ width: '100%', padding: '14px', fontSize: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', boxSizing: 'border-box', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }} />
+          </div>
           <div style={{ marginBottom: '20px' }}>
             <label htmlFor="apellido" style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '4px' }}>Apellido</label>
             <input id="apellido" name="apellido" type="text" value={formData.apellido} onChange={handleChange} required style={{ width: '100%', padding: '14px', fontSize: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', boxSizing: 'border-box', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }} />

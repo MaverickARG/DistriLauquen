@@ -60,6 +60,7 @@ function saveUsers(users) {
       const adminUser = {
         id: 1,
         username,
+        nombre: 'Admin',
         apellido: 'Admin',
         telefono: '0000000000',
         cuit: '00-00000000-0',
@@ -244,7 +245,7 @@ app.get('/api/buscar', authMiddleware, (req, res) => {
 
 // Registro de nuevos usuarios
 app.post('/api/auth/register', async (req, res) => {
-  const { username, apellido, telefono, cuit, email, password } = req.body;
+  const { username, nombre, apellido, telefono, cuit, email, password } = req.body;
 
   if (!username || !apellido || !telefono || !cuit || !email || !password) {
     return res.status(400).json({ message: 'Todos los campos son requeridos.' });
@@ -266,6 +267,7 @@ app.post('/api/auth/register', async (req, res) => {
   const newUser = {
     id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
     username,
+    nombre: nombre || '',
     apellido,
     telefono,
     cuit,
@@ -305,7 +307,9 @@ app.post('/api/auth/login', async (req, res) => {
       id: user.id, 
       username: user.username,
       role: user.role,
-      lista_precios: user.lista_precios
+      lista_precios: user.lista_precios,
+      nombre: user.nombre || '',
+      apellido: user.apellido || ''
     } 
   };
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' }); // El token expira en 1 día
@@ -431,11 +435,11 @@ app.post('/api/auth/change-password', authMiddleware, async (req, res) => {
 
 // Endpoint para que un usuario actualice su propio perfil
 app.put('/api/auth/profile', authMiddleware, async (req, res) => {
-  const { apellido, telefono, cuit, email } = req.body;
+  const { nombre, apellido, telefono, cuit, email } = req.body;
   const userId = req.user.id;
 
-  if (!apellido || !telefono || !cuit || !email) {
-    return res.status(400).json({ message: 'Apellido, teléfono, CUIT y email son requeridos.' });
+  if (!nombre || !apellido || !telefono || !cuit || !email) {
+    return res.status(400).json({ message: 'Nombre, apellido, teléfono, CUIT y email son requeridos.' });
   }
 
   let users = getUsers();
@@ -460,6 +464,7 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
   // Actualizar datos
   users[userIndex] = {
     ...users[userIndex],
+    nombre,
     apellido,
     telefono,
     cuit,
@@ -475,7 +480,9 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
       id: updatedUser.id, 
       username: updatedUser.username,
       role: updatedUser.role,
-      lista_precios: updatedUser.lista_precios
+      lista_precios: updatedUser.lista_precios,
+      nombre: updatedUser.nombre || '',
+      apellido: updatedUser.apellido || ''
     } 
   };
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
@@ -520,6 +527,73 @@ app.put('/api/admin/clientes/:id', [authMiddleware, adminMiddleware], (req, res)
 
   console.log(`🔧 Datos del usuario ID ${userId} actualizados.`);
   res.json({ message: 'Usuario actualizado con éxito.', user: users[userIndex] });
+});
+
+// Endpoint para que el admin actualice el perfil de un cliente (apellido, telefono, cuit, email)
+app.put('/api/admin/clientes/:id/profile', [authMiddleware, adminMiddleware], (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { nombre, apellido, telefono, cuit, email } = req.body;
+
+  if (!nombre || !apellido || !telefono || !cuit || !email) {
+    return res.status(400).json({ message: 'Nombre, apellido, teléfono, CUIT y email son requeridos.' });
+  }
+
+  let users = getUsers();
+  const userIndex = users.findIndex(u => u.id === userId);
+  if (userIndex === -1) return res.status(404).json({ message: 'Usuario no encontrado.' });
+
+  // Validar que el CUIT y email no estén en uso por OTRO usuario
+  const existingCuitUser = users.find(u => u.cuit === cuit && u.id !== userId);
+  if (existingCuitUser) return res.status(409).json({ message: 'El CUIT ya está registrado por otro usuario.' });
+  const existingEmailUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== userId);
+  if (existingEmailUser) return res.status(409).json({ message: 'El correo electrónico ya está en uso por otro usuario.' });
+
+  users[userIndex] = {
+    ...users[userIndex],
+    nombre,
+    apellido,
+    telefono,
+    cuit,
+    email
+  };
+
+  saveUsers(users);
+  console.log(`🔧 Perfil del usuario ID ${userId} actualizado por admin.`);
+  const { password, ...userWithoutPassword } = users[userIndex];
+  res.json({ message: 'Perfil actualizado con éxito.', user: userWithoutPassword });
+});
+
+// Endpoint para que el admin cambie la contraseña de un cliente
+app.post('/api/admin/clientes/:id/password', [authMiddleware, adminMiddleware], async (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ message: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+  }
+
+  let users = getUsers();
+  const userIndex = users.findIndex(u => u.id === userId);
+  if (userIndex === -1) return res.status(404).json({ message: 'Usuario no encontrado.' });
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+  users[userIndex].password = hashed;
+  saveUsers(users);
+  console.log(`🔐 Contraseña actualizada por admin para usuario ID ${userId}.`);
+  res.json({ message: 'Contraseña actualizada con éxito.' });
+});
+
+// Endpoint para eliminar un cliente
+app.delete('/api/admin/clientes/:id', [authMiddleware, adminMiddleware], (req, res) => {
+  const userId = parseInt(req.params.id);
+  let users = getUsers();
+  const userIndex = users.findIndex(u => u.id === userId);
+  if (userIndex === -1) return res.status(404).json({ message: 'Usuario no encontrado.' });
+
+  const removed = users.splice(userIndex, 1)[0];
+  saveUsers(users);
+  console.log(`🗑️ Usuario ID ${userId} eliminado por admin (${removed.username}).`);
+  res.json({ message: 'Usuario eliminado con éxito.' });
 });
 
 app.listen(PORT, () => {

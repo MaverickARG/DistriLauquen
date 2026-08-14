@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, DollarSign, Package, Tag, Layers, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, DollarSign, Package, Tag, Layers, RefreshCw, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,6 +15,20 @@ export default function Catalogo() {
   const { token, user, logout } = useAuth();
   const navigate = useNavigate();
   const [margen, setMargen] = useState(0); // arrancar en 0%
+  const [showMargenControl, setShowMargenControl] = useState(true); // disponible para todos los usuarios
+
+  const sanitizeMarginInput = (raw) => {
+    // raw es string desde e.target.value; eliminamos todo excepto dígitos y - opcional
+    if (raw === '' || raw === undefined || raw === null) return 0;
+    // quitar espacios y caracteres no numéricos (permitimos sólo dígitos)
+    let s = String(raw).replace(/[^0-9]/g, '');
+    // eliminar ceros a la izquierda; si queda vacío, dejar '0'
+    s = s.replace(/^0+/, '');
+    if (s === '') s = '0';
+    const n = parseInt(s, 10);
+    if (isNaN(n) || n < 0) return 0;
+    return n;
+  };
 
   // Petición a la API con debounce
   useEffect(() => {
@@ -87,14 +101,32 @@ export default function Catalogo() {
           
           {/* Controles */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            {/* Icono tipo 'ocultar saldo' para mostrar/ocultar el control de margen (solo admins) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '2px 4px', borderRadius: '8px' }}>
+              <button
+                title={showMargenControl ? 'Ocultar control de margen' : 'Mostrar control de margen'}
+                onClick={() => setShowMargenControl(s => !s)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: '36px', height: '36px', borderRadius: '8px',
+                  border: '1px solid var(--border-color)', background: 'var(--bg-card)', cursor: 'pointer'
+                }}
+              >
+                {showMargenControl ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+            </div>
             {/* Selector de Margen de Ganancia */}
+            {showMargenControl && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--bg-dark)', padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <DollarSign size={18} color="var(--brand-yellow)" />
               <span style={{ fontSize: '14px' }}>Agregar margen</span>
               <input
                 type="number"
-                value={margen} 
-                onChange={(e) => setMargen(Number(e.target.value))}
+                value={margen}
+                onChange={(e) => {
+                  const cleaned = sanitizeMarginInput(e.target.value);
+                  setMargen(cleaned);
+                }}
                 style={{
                   backgroundColor: 'var(--bg-black)',
                   color: 'var(--text-primary)',
@@ -107,6 +139,7 @@ export default function Catalogo() {
               />
               <span style={{ fontSize: '14px' }}>%</span>
             </div>
+            )}
             {/* switch eliminado */}
           </div>
         </header>
