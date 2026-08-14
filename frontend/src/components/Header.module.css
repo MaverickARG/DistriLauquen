@@ -1,0 +1,195 @@
+.header {
+  background-color: var(--bg-black);
+  padding: 15px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: 80px;
+}
+
+.logoLink {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.logoImage {
+  height: 60px;
+  width: auto;
+}
+
+.nav {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+}
+
+.nav a {
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 16px;
+  padding: 8px 0;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.nav a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--brand-yellow);
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform 0.3s ease-out;
+}
+
+.nav a:hover {
+  color: var(--text-primary);
+}
+
+.nav a:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+.nav a.active {
+  color: var(--brand-yellow);
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.ctaButton {
+  text-decoration: none;
+  color: var(--bg-black);
+  background-color: var(--brand-yellow);
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 700;
+  transition: background-color 0.3s ease;
+}
+
+.ctaButton:hover {
+  background-color: var(--brand-yellow-dark);
+  color: var(--bg-black);
+}
+
+.userMenu {
+  position: relative;
+}
+
+.userButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+}
+
+.userButton strong {
+  color: var(--text-primary);
+}
+
+.chevron {
+  transition: transform 0.2s ease-in-out;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 15px);
+  background-color: var(--bg-card);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  min-width: 220px;
+  z-index: 10;
+  border: 1px solid var(--border-color);
+  padding: 8px 0;
+  overflow: hidden;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 20px;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+}
+
+.dropdownItem:hover {
+  background-color: var(--bg-dark);
+  color: var(--brand-yellow);
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 8px 0;
+}
+
+.logoutButton {
+  color: #ef4444;
+}
+
+.logoutButton:hover {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .nav {
+    display: none;
+    position: absolute;
+    top: 80px; /* Height of the header */
+    left: 0;
+    right: 0;
+    background-color: var(--bg-black);
+    flex-direction: column;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .nav.open {
+    display: flex;
+  }
+
+  .hamburger {
+    display: block;
+  }
+}

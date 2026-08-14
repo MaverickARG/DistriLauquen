@@ -11,6 +11,7 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import ChangePassword from '@/pages/ChangePassword';
 import Perfil from '@/pages/Perfil';
+import WhatsAppButton from '@/components/WhatsAppButton';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         </Routes>
       </main>
       <Footer />
+      <WhatsAppButton />
     </>
   );
 }

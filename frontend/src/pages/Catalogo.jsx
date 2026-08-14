@@ -69,32 +69,32 @@ export default function Catalogo() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6', fontFamily: 'sans-serif', padding: '20px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-dark)', fontFamily: 'Inter, sans-serif', padding: '20px' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         
         {/* Encabezado */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '12px', color: '#fff' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', backgroundColor: 'var(--bg-black)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>🚗 Catálogo Interno</h1>
-            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#94a3b8' }}>
-              Viendo precios para: <span style={{ fontWeight: 'bold', color: 'white' }}>{user.lista_precios}</span>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>Catálogo de Repuestos</h1>
+            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: 'var(--text-secondary)' }}>
+              Viendo precios para: <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{user.lista_precios}</span>
             </p>
           </div>
           
           {/* Controles */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             {/* Selector de Margen de Ganancia */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#334155', padding: '8px 16px', borderRadius: '8px' }}>
-              <DollarSign size={18} color="#4ade80" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--bg-dark)', padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <DollarSign size={18} color="var(--brand-yellow)" />
               <span style={{ fontSize: '14px' }}>Margen: +</span>
               <input
                 type="number"
                 value={margen} 
                 onChange={(e) => setMargen(Number(e.target.value))}
                 style={{
-                  backgroundColor: '#0f172a',
-                  color: '#fff',
-                  border: '1px solid #475569',
+                  backgroundColor: 'var(--bg-black)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--metal-gray)',
                   borderRadius: '6px',
                   padding: '4px 8px',
                   fontWeight: 'bold',
@@ -116,7 +116,7 @@ export default function Catalogo() {
                 />
                 <span style={{
                   position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                  backgroundColor: modoCliente ? '#22c55e' : '#475569',
+                  backgroundColor: modoCliente ? 'var(--brand-yellow)' : 'var(--metal-gray)',
                   transition: '.2s', borderRadius: '24px'
                 }}>
                   <span style={{
@@ -133,7 +133,7 @@ export default function Catalogo() {
 
         {/* Barra de Búsqueda */}
         <div style={{ position: 'relative', marginBottom: '20px' }}>
-          <Search style={{ position: 'absolute', left: '16px', top: '16px', color: '#94a3b8' }} size={20} />
+          <Search style={{ position: 'absolute', left: '16px', top: '16px', color: 'var(--metal-gray)' }} size={20} />
           <input
             type="text"
             placeholder="Buscar por código, repuesto, vehículo (ej: 'corsa bomba agua', '1110', 'vth')..."
@@ -143,21 +143,22 @@ export default function Catalogo() {
               width: '100%',
               padding: '16px 16px 16px 48px',
               fontSize: '16px',
-              border: '2px solid #e2e8f0',
+              border: '1px solid var(--border-color)',
               borderRadius: '10px',
               outline: 'none',
               boxSizing: 'border-box',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-primary)'
             }}
           />
           {cargando && (
-            <RefreshCw style={{ position: 'absolute', right: '16px', top: '16px', color: '#3b82f6', animation: 'spin 1s linear infinite' }} size={20} />
+            <RefreshCw style={{ position: 'absolute', right: '16px', top: '16px', color: 'var(--brand-yellow)', animation: 'spin 1s linear infinite' }} size={20} />
           )}
         </div>
 
         {/* Resumen de Resultados */}
         {busqueda && (
-          <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
             Mostrando <strong>{resultados.length}</strong> de <strong>{total}</strong> repuestos encontrados para "<em>{busqueda}</em>"
           </p>
         )}
@@ -172,34 +173,34 @@ export default function Catalogo() {
               <div 
                 key={index} 
                 style={{ 
-                  backgroundColor: '#fff', 
+                  backgroundColor: 'var(--bg-card)', 
                   borderRadius: '12px', 
                   padding: '16px', 
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   alignItems: 'center',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                  borderLeft: '5px solid #3b82f6'
+                  border: '1px solid var(--border-color)',
+                  transition: 'border-color 0.3s ease, transform 0.3s ease'
                 }}
               >
                 <div style={{ flex: 1, paddingRight: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                    <span style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                    <span style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--brand-yellow)', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', border: '1px solid var(--border-color)' }}>
                       {item.hoja_origen}
                     </span>
-                    <span style={{ color: '#94a3b8', fontSize: '12px' }}>Fila {item.fila_origen}</span>
+                    <span style={{ color: 'var(--metal-gray)', fontSize: '12px' }}>Fila {item.fila_origen}</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: '15px', color: '#1e293b', fontWeight: '500' }}>
+                  <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-primary)', fontWeight: '500' }}>
                     {detalle}
                   </p>
                 </div>
 
                 {/* Bloque de Precios */}
                 <div style={{ textAlign: 'right', minWidth: '140px' }}>
-                  <div style={{ fontSize: '12px', color: '#64748b', textDecoration: modoCliente ? 'none' : 'line-through', height: '18px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textDecoration: modoCliente ? 'none' : 'line-through', height: '18px' }}>
                     {modoCliente ? 'Costo: $*****' : `Costo: $${item.precio?.toLocaleString('es-AR')}`}
                   </div>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#16a34a' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--brand-yellow)' }}>
                     ${precioVenta.toLocaleString('es-AR')}
                   </div>
                 </div>
@@ -208,9 +209,9 @@ export default function Catalogo() {
           })}
 
           {!cargando && busqueda && resultados.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#fff', borderRadius: '12px', color: '#64748b', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <Package size={48} style={{ marginBottom: '12px', opacity: 0.5 }} />
-              <p style={{ margin: 0, fontSize: '16px' }}>No se encontraron repuestos con ese término de búsqueda.</p>
+            <div style={{ textAlign: 'center', padding: '40px', backgroundColor: 'var(--bg-card)', borderRadius: '12px', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
+              <Package size={48} style={{ marginBottom: '12px', color: 'var(--metal-gray)' }} />
+              <p style={{ margin: 0, fontSize: '16px', color: 'var(--text-secondary)' }}>No se encontraron repuestos con ese término de búsqueda.</p>
             </div>
           )}
         </div>

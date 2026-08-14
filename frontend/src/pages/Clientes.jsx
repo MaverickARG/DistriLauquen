@@ -106,12 +106,12 @@ export default function Clientes() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 80px)', backgroundColor: '#f3f4f6', padding: '20px' }}>
-      <div style={{ width: '100%', maxWidth: '400px', padding: '40px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-        <h1 style={{ textAlign: 'center', fontSize: '28px', fontWeight: 'bold', color: '#1e293b', marginBottom: '12px' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 80px)', backgroundColor: 'var(--bg-dark)', padding: '20px' }}>
+      <div style={{ width: '100%', maxWidth: '450px', padding: '40px', backgroundColor: 'var(--bg-black)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+        <h1 style={{ textAlign: 'center', fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '12px' }}>
           {isLogin ? 'Acceso Clientes' : 'Crear Cuenta'}
         </h1>
-        <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '32px' }}>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '32px' }}>
           {isLogin ? 'Ingresa tu usuario y contraseña.' : 'Completa tus datos para registrarte.'}
         </p>
         
@@ -119,14 +119,14 @@ export default function Clientes() {
           {/* Fila de Nombre y Apellido */}
           <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
             <div style={{ flex: 1, position: 'relative' }}>
-              <User style={{ position: 'absolute', left: '12px', top: '13px', color: '#94a3b8' }} size={20} />
+              <User style={{ position: 'absolute', left: '12px', top: '13px', color: 'var(--metal-gray)' }} size={20} />
               <input
                 type="text"
                 placeholder={isLogin ? "Nombre de usuario" : "Nombre"}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                style={{ width: '100%', padding: '14px 14px 14px 42px', fontSize: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '14px 14px 14px 42px', fontSize: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', boxSizing: 'border-box', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }}
               />
             </div>
             {!isLogin && (
@@ -137,7 +137,7 @@ export default function Clientes() {
                   value={apellido}
                   onChange={(e) => setApellido(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '14px', fontSize: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '14px', fontSize: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', boxSizing: 'border-box', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }}
                 />
               </div>
             )}
@@ -153,7 +153,7 @@ export default function Clientes() {
                   value={telefono}
                   onChange={(e) => setTelefono(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '14px', fontSize: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '14px', fontSize: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', boxSizing: 'border-box', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }}
                 />
               </div>
               <div style={{ flex: 1, position: 'relative' }}>
@@ -163,7 +163,7 @@ export default function Clientes() {
                   value={cuit}
                   onChange={(e) => setCuit(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '14px', fontSize: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '14px', fontSize: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', boxSizing: 'border-box', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }}
                 />
               </div>
             </div>
@@ -172,21 +172,21 @@ export default function Clientes() {
           {/* Input de Email (solo para registro) */}
           {!isLogin && (
             <div style={{ marginBottom: '20px', position: 'relative' }}>
-              <Mail style={{ position: 'absolute', left: '12px', top: '13px', color: '#94a3b8' }} size={20} />
+              <Mail style={{ position: 'absolute', left: '12px', top: '13px', color: 'var(--metal-gray)' }} size={20} />
               <input
                 type="email"
                 placeholder="Correo (para recuperación)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                style={{ width: '100%', padding: '14px 14px 14px 42px', fontSize: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '14px 14px 14px 42px', fontSize: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', boxSizing: 'border-box', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }}
               />
             </div>
           )}
 
           {/* Input de Contraseña */}
           <div style={{ marginBottom: '20px', position: 'relative' }}>
-            <Lock style={{ position: 'absolute', left: '12px', top: '13px', color: '#94a3b8' }} size={20} />
+            <Lock style={{ position: 'absolute', left: '12px', top: '13px', color: 'var(--metal-gray)' }} size={20} />
             <input
               type="password"
               placeholder="Contraseña"
@@ -194,40 +194,40 @@ export default function Clientes() {
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
               required
-              style={{ width: '100%', padding: '14px 14px 14px 42px', fontSize: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '14px 14px 14px 42px', fontSize: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', boxSizing: 'border-box', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }}
             />
           </div>
 
           {/* Input de Confirmar Contraseña (solo para registro) */}
           {!isLogin && (
             <div style={{ marginBottom: '24px', position: 'relative' }}>
-              <Lock style={{ position: 'absolute', left: '12px', top: '13px', color: '#94a3b8' }} size={20} />
+              <Lock style={{ position: 'absolute', left: '12px', top: '13px', color: 'var(--metal-gray)' }} size={20} />
               <input
                 type="password"
                 placeholder="Confirmar contraseña"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                style={{ width: '100%', padding: '14px 14px 14px 42px', fontSize: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '14px 14px 14px 42px', fontSize: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', boxSizing: 'border-box', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }}
               />
             </div>
           )}
 
-          {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><AlertCircle size={20} /><span>{error}</span></div>}
-          {success && <div style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>{success}</div>}
+          {error && <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5', padding: '12px', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #ef4444' }}><AlertCircle size={20} /><span>{error}</span></div>}
+          {success && <div style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#86efac', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #22c55e' }}>{success}</div>}
 
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '16px', fontSize: '16px', fontWeight: 'bold', color: 'white', backgroundColor: '#2563eb', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s' }}>
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '16px', fontSize: '16px', fontWeight: 'bold', color: 'var(--bg-black)', backgroundColor: 'var(--brand-yellow)', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s' }}>
             {loading ? 'Procesando...' : (isLogin ? 'Ingresar' : 'Registrarme')}
           </button>
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
-          <button onClick={handleSwitchMode} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}>
+          <button onClick={handleSwitchMode} style={{ background: 'none', border: 'none', color: 'var(--brand-yellow)', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}>
             {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
           </button>
           {isLogin && (
             <div style={{ marginTop: '16px' }}>
-              <Link to="/forgot-password" style={{ color: '#4b5563', fontSize: '14px', textDecoration: 'underline' }}>
+              <Link to="/forgot-password" style={{ color: 'var(--text-secondary)', fontSize: '14px', textDecoration: 'underline' }}>
                 ¿Olvidaste tu contraseña?
               </Link>
             </div>
