@@ -15,8 +15,3 @@ npm-debug.log*
 .env
 .env.*.local
 .env.local
-
-node_modules
-.vite
-dist
-.env
