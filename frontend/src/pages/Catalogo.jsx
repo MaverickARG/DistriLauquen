@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, DollarSign, Package, Tag, Layers, RefreshCw } from 'lucide-react';
+import { Search, DollarSign, Package, Tag, Layers, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,26 +7,31 @@ export default function Catalogo() {
   const [busqueda, setBusqueda] = useState('');
   const [resultados, setResultados] = useState([]);
   const [total, setTotal] = useState(0);
+  const [pagina, setPagina] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [cargando, setCargando] = useState(false);
+  // ancho dinámico del input de página según la cantidad de dígitos de totalPages
+  const pageInputWidth = `${Math.max(48, 18 + String(totalPages).length * 12)}px`;
   const { token, user, logout } = useAuth();
   const navigate = useNavigate();
-  const [margen, setMargen] = useState(40); // 40% de ganancia por defecto
-  const [modoCliente, setModoCliente] = useState(false); // Switch para ocultar costo
+  const [margen, setMargen] = useState(0); // arrancar en 0%
 
   // Petición a la API con debounce
   useEffect(() => {
     if (!busqueda.trim()) {
       setResultados([]);
       setTotal(0);
+      setPagina(1);
+      setTotalPages(1);
       return;
     }
 
     const timer = setTimeout(() => {
-      buscarRepuestos();
+      buscarRepuestos(pagina);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [busqueda]);
+  }, [busqueda, pagina]);
 
   // Redirigir si no está logueado
   useEffect(() => {
@@ -35,11 +40,11 @@ export default function Catalogo() {
     }
   }, [token, navigate]);
 
-  const buscarRepuestos = async () => {
+  const buscarRepuestos = async (paginaReq = 1) => {
     if (!token) return; // No buscar si no hay token
     setCargando(true);
     try {
-      const res = await fetch(`/api/buscar?q=${encodeURIComponent(busqueda)}&limite=100`, {
+      const res = await fetch(`/api/buscar?q=${encodeURIComponent(busqueda)}&limite=100&pagina=${paginaReq}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -51,6 +56,8 @@ export default function Catalogo() {
       }
       setResultados(data.resultados || []);
       setTotal(data.total || 0);
+      setPagina(data.pagina || 1);
+      setTotalPages(data.total_pages || 1);
     } catch (err) {
       console.error("Error conectando con la API:", err);
     } finally {
@@ -76,9 +83,6 @@ export default function Catalogo() {
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', backgroundColor: 'var(--bg-black)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>Catálogo de Repuestos</h1>
-            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: 'var(--text-secondary)' }}>
-              Viendo precios para: <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{user.lista_precios}</span>
-            </p>
           </div>
           
           {/* Controles */}
@@ -86,7 +90,7 @@ export default function Catalogo() {
             {/* Selector de Margen de Ganancia */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--bg-dark)', padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <DollarSign size={18} color="var(--brand-yellow)" />
-              <span style={{ fontSize: '14px' }}>Margen: +</span>
+              <span style={{ fontSize: '14px' }}>Agregar margen</span>
               <input
                 type="number"
                 value={margen} 
@@ -103,31 +107,7 @@ export default function Catalogo() {
               />
               <span style={{ fontSize: '14px' }}>%</span>
             </div>
-
-            {/* Switch Modo Cliente */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '14px', fontWeight: '500' }}>Modo Cliente</span>
-              <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                <input 
-                  type="checkbox" 
-                  checked={modoCliente} 
-                  onChange={() => setModoCliente(!modoCliente)}
-                  style={{ opacity: 0, width: 0, height: 0 }}
-                />
-                <span style={{
-                  position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                  backgroundColor: modoCliente ? 'var(--brand-yellow)' : 'var(--metal-gray)',
-                  transition: '.2s', borderRadius: '24px'
-                }}>
-                  <span style={{
-                    position: 'absolute', content: '""', height: '20px', width: '20px',
-                    left: '2px', bottom: '2px', backgroundColor: 'white',
-                    transition: '.2s', borderRadius: '50%',
-                    transform: modoCliente ? 'translateX(20px)' : 'translateX(0)'
-                  }}></span>
-                </span>
-              </label>
-            </div>
+            {/* switch eliminado */}
           </div>
         </header>
 
@@ -159,7 +139,7 @@ export default function Catalogo() {
         {/* Resumen de Resultados */}
         {busqueda && (
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-            Mostrando <strong>{resultados.length}</strong> de <strong>{total}</strong> repuestos encontrados para "<em>{busqueda}</em>"
+            Mostrando <strong>{resultados.length}</strong> de <strong>{total}</strong> repuestos encontrados para "<em>{busqueda}</em>" (Página {pagina} de {totalPages})
           </p>
         )}
 
@@ -167,7 +147,6 @@ export default function Catalogo() {
         <div style={{ display: 'grid', gap: '12px' }}>
           {resultados.map((item, index) => {
             const precioVenta = calcularPrecioVenta(item.precio);
-            const detalle = item.datos_raw.join(' | ');
 
             return (
               <div 
@@ -184,22 +163,34 @@ export default function Catalogo() {
                 }}
               >
                 <div style={{ flex: 1, paddingRight: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                    <span style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--brand-yellow)', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', border: '1px solid var(--border-color)' }}>
-                      {item.hoja_origen}
-                    </span>
-                    <span style={{ color: 'var(--metal-gray)', fontSize: '12px' }}>Fila {item.fila_origen}</span>
+                  {/* Fila superior con Marca (sin mostrar 'hoja_origen') */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    {item.marca && (
+                      <span style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--brand-yellow)', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                        {item.marca}
+                      </span>
+                    )}
                   </div>
-                  <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-primary)', fontWeight: '500' }}>
-                    {detalle}
+
+                  {/* Descripción principal y códigos (Código Principal + Código Tercero si existe) */}
+                  <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-primary)', fontWeight: '500', marginBottom: '4px' }}>
+                    {item.descripcion || 'Sin descripción'}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--metal-gray)', fontFamily: 'monospace', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <span><strong>Cód:</strong> {item.codigo}</span>
+                    {(() => {
+                      const altKeys = Object.keys(item).filter(k => /tercer|tercero|codigoter|codigo_tercero|cod_terc/i.test(k));
+                      if (altKeys.length > 0) {
+                        const key = altKeys[0];
+                        return (<span><strong>Cod. Tercero:</strong> {item[key]}</span>);
+                      }
+                      return null;
+                    })()}
                   </p>
                 </div>
 
                 {/* Bloque de Precios */}
                 <div style={{ textAlign: 'right', minWidth: '140px' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textDecoration: modoCliente ? 'none' : 'line-through', height: '18px' }}>
-                    {modoCliente ? 'Costo: $*****' : `Costo: $${item.precio?.toLocaleString('es-AR')}`}
-                  </div>
                   <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--brand-yellow)' }}>
                     ${precioVenta.toLocaleString('es-AR')}
                   </div>
@@ -207,6 +198,48 @@ export default function Catalogo() {
               </div>
             );
           })}
+
+          {/* Controles de paginación */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '16px', alignItems: 'center' }}>
+              <button
+                onClick={() => setPagina(p => Math.max(1, p - 1))}
+                disabled={pagina <= 1}
+                aria-label="Anterior"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-dark)', cursor: pagina <= 1 ? 'not-allowed' : 'pointer', opacity: pagina <= 1 ? 0.45 : 1
+                }}
+              >
+                <ChevronLeft size={22} color="var(--brand-yellow)" />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+                <span>Página</span>
+                <input
+                  type="number"
+                  value={pagina}
+                  min={1}
+                  max={totalPages}
+                  onChange={(e) => { const v = Number(e.target.value); if (!isNaN(v)) setPagina(Math.max(1, Math.min(totalPages, v))); }}
+                  style={{ width: pageInputWidth, textAlign: 'center', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                />
+                <span>de {totalPages}</span>
+              </div>
+
+              <button
+                onClick={() => setPagina(p => Math.min(totalPages, p + 1))}
+                disabled={pagina >= totalPages}
+                aria-label="Siguiente"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-dark)', cursor: pagina >= totalPages ? 'not-allowed' : 'pointer', opacity: pagina >= totalPages ? 0.45 : 1
+                }}
+              >
+                <ChevronRight size={22} color="var(--brand-yellow)" />
+              </button>
+            </div>
+          )}
 
           {!cargando && busqueda && resultados.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px', backgroundColor: 'var(--bg-card)', borderRadius: '12px', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>

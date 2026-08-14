@@ -30,10 +30,7 @@ app.use(cors());
 app.use(express.json());
 
 // --- Lógica de Almacenamiento de Usuarios (Temporalmente en JSON) ---
-// En Vercel, solo podemos escribir en el directorio /tmp
-const IS_VERCEL = process.env.VERCEL === '1';
-const WRITABLE_DIR = IS_VERCEL ? '/tmp' : __dirname;
-const USERS_PATH = path.join(WRITABLE_DIR, 'users.json');
+const USERS_PATH = path.join(__dirname, 'users.json');
 
 function getUsers() {
   if (!fs.existsSync(USERS_PATH)) return [];
@@ -69,11 +66,11 @@ function saveUsers(users) {
         email,
         password: hashedPassword,
         role: 'admin',
-        lista_precios: 'mecanicos',
+        lista_precios: 'distribuidores',
         createdAt: new Date().toISOString()
       };
       saveUsers([adminUser]);
-      console.log(`✅ Usuario administrador "${username}" creado con éxito.`);
+      console.log(`✅ Usuario administrador "${username}" creado con éxito. Lista de precios: ${adminUser.lista_precios}`);
     } catch (error) {
       console.error("❌ Error crítico al crear el usuario administrador:", error);
     }
@@ -81,27 +78,32 @@ function saveUsers(users) {
 })();
 
 // --- Configuración de Multer para subida de archivos ---
-const createStorage = (fileName) => {
-  return multer.diskStorage({
-    destination: function (req, file, cb) {      
-      const destDir = IS_VERCEL ? '/tmp' : path.join(__dirname, '..', 'data');
-      cb(null, destDir);
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      const dataDir = path.join(__dirname, 'data'); // Asegúrate de que la carpeta 'data' esté en el backend
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      cb(null, dataDir);
     },
     filename: function (req, file, cb) {
-      cb(null, fileName);
+      // Siempre guardar como 'lista.xlsx', sobrescribiendo el anterior.
+      cb(null, 'lista.xlsx');
     }
   });
-};
 
-const handleUpload = (req, res, listType) => {
+const uploadPriceList = multer({ storage: storage });
+
+const handleUpload = (req, res) => { // Ya no necesitamos listType aquí, se asume 'distribuidores'
   if (!req.file) {
     return res.status(400).json({ message: 'No se subió ningún archivo.' });
   }
 
-  console.log(`📄 Archivo para lista '${listType}' recibido. Ejecutando script de parseo...`);
+  console.log(`📄 Archivo de lista de precios recibido. Ejecutando script de parseo...`);
 
   const pythonScriptPath = path.join(__dirname, 'scripts', 'parse_excel.py');
-  exec(`python "${pythonScriptPath}" ${listType}`, (error, stdout, stderr) => {
+  // El script de python ya no necesita argumentos, asume 'distribuidores'
+  exec(`python "${pythonScriptPath}"`, (error, stdout, stderr) => {
     if (error) {
       console.error(`Error ejecutando el script: ${error.message}`);
       return res.status(500).json({ message: 'Error al procesar el archivo Excel.', details: stderr });
@@ -113,40 +115,28 @@ const handleUpload = (req, res, listType) => {
     
     cargarRepuestos(); // Recargar los catálogos en memoria
 
-    res.json({ message: `Archivo para lista '${listType}' subido y procesado con éxito.`, output: stdout });
+    res.json({ message: `Archivo de lista de precios subido y procesado con éxito.`, output: stdout });
   });
 };
 
-const uploadMecanicos = multer({ storage: createStorage('distribuidor.xlsx') });
-const uploadFinales = multer({ storage: createStorage('final.xlsx') });
-
-
 // --- Lógica del Catálogo ---
-const MECANICOS_JSON_PATH = path.join(WRITABLE_DIR, 'repuestos_mecanicos.json');
-const FINALES_JSON_PATH = path.join(WRITABLE_DIR, 'repuestos_finales.json');
+const DISTRIBUIDORES_JSON_PATH = path.join(__dirname, 'repuestos_distribuidores.json');
 let repuestos = {
-  mecanicos: [],
-  finales: []
+  distribuidores: []
 };
 
 function cargarRepuestos() {
   try {
-    if (fs.existsSync(MECANICOS_JSON_PATH)) {
-      const rawDataMecanicos = fs.readFileSync(MECANICOS_JSON_PATH, 'utf-8');
-      repuestos.mecanicos = JSON.parse(rawDataMecanicos);
+    if (fs.existsSync(DISTRIBUIDORES_JSON_PATH)) {
+      const rawDataDistribuidores = fs.readFileSync(DISTRIBUIDORES_JSON_PATH, 'utf-8');
+      repuestos.distribuidores = JSON.parse(rawDataDistribuidores);
     } else {
-      repuestos.mecanicos = [];
+      repuestos.distribuidores = [];
     }
-    if (fs.existsSync(FINALES_JSON_PATH)) {
-      const rawDataFinales = fs.readFileSync(FINALES_JSON_PATH, 'utf-8');
-      repuestos.finales = JSON.parse(rawDataFinales);
-    } else {
-      repuestos.finales = [];
-    }
-    console.log(`✅ Catálogo recargado: ${repuestos.mecanicos.length} repuestos (Mecánicos), ${repuestos.finales.length} repuestos (Finales).`);
+    console.log(`✅ Catálogo recargado: ${repuestos.distribuidores.length} repuestos (Distribuidores).`);
   } catch (error) {
     console.error('❌ Error al cargar JSONs de repuestos:', error.message);
-    repuestos = { mecanicos: [], finales: [] }; // Si hay error, vaciamos para no servir datos viejos
+    repuestos = { distribuidores: [] }; // Si hay error, vaciamos para no servir datos viejos
   }
 }
 
@@ -205,8 +195,7 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     items_cargados: {
-      mecanicos: repuestos.mecanicos.length,
-      finales: repuestos.finales.length
+      distribuidores: repuestos.distribuidores.length
     } 
   });
 });
@@ -215,7 +204,8 @@ app.get('/api/health', (req, res) => {
 app.get('/api/buscar', authMiddleware, (req, res) => {
   const query = (req.query.q || '').trim().toLowerCase();
   const limite = parseInt(req.query.limite) || 50;
-  const { lista_precios: listaPreciosUsuario = 'finales' } = req.user;
+  const pagina = parseInt(req.query.pagina) || 1; // 1-based
+  const { lista_precios: listaPreciosUsuario = 'distribuidores' } = req.user; // Default a distribuidores
 
   if (!query) {
     return res.json({ total: 0, resultados: [] });
@@ -225,16 +215,28 @@ app.get('/api/buscar', authMiddleware, (req, res) => {
   const catalogoActivo = repuestos[listaPreciosUsuario] || [];
 
   const filtrados = catalogoActivo.filter(item => {
-    const textoFila = item.datos_raw.join(' ').toLowerCase();
-    const categoria = item.hoja_origen.toLowerCase();
-    const todoElTexto = `${categoria} ${textoFila}`;
+    // Se construye una cadena de texto con todos los datos relevantes del producto para la búsqueda.
+    const textoBuscable = [
+      item.codigo,
+      item.descripcion,
+      item.marca,
+      item.hoja_origen // También busca en el nombre de la categoría/hoja
+    ].filter(Boolean).join(' ').toLowerCase();
 
-    return palabras.every(palabra => todoElTexto.includes(palabra));
+    return palabras.every(palabra => textoBuscable.includes(palabra));
   });
 
+  const total = filtrados.length;
+  const totalPages = Math.max(1, Math.ceil(total / limite));
+  const start = (Math.max(1, pagina) - 1) * limite;
+  const resultados = filtrados.slice(start, start + limite);
+
   res.json({
-    total: filtrados.length,
-    resultados: filtrados.slice(0, limite)
+    total,
+    pagina: Math.max(1, pagina),
+    per_page: limite,
+    total_pages: totalPages,
+    resultados
   });
 });
 
@@ -270,7 +272,7 @@ app.post('/api/auth/register', async (req, res) => {
     email,
     password: hashedPassword,
     role: 'cliente', // Todos los usuarios nuevos son clientes
-    lista_precios: 'finales', // Por defecto, ven precios de cliente final
+    lista_precios: 'distribuidores', // Por defecto, ven precios de distribuidor
     createdAt: new Date().toISOString()
   };
 
@@ -483,15 +485,9 @@ app.put('/api/auth/profile', authMiddleware, async (req, res) => {
 });
 
 // --- Endpoints de Administración ---
-
-// Subir lista de precios para Mecánicos (archivo distribuidor.xlsx)
-app.post('/api/admin/upload-lista/mecanicos', [authMiddleware, adminMiddleware, uploadMecanicos.single('listaPrecios')], (req, res) => {
-  handleUpload(req, res, 'mecanicos');
-});
-
-// Subir lista de precios para Finales (archivo final.xlsx)
-app.post('/api/admin/upload-lista/finales', [authMiddleware, adminMiddleware, uploadFinales.single('listaPrecios')], (req, res) => {
-  handleUpload(req, res, 'finales');
+// Subir lista de precios para Distribuidores (archivo distribuidor.xlsx)
+app.post('/api/admin/upload-lista', [authMiddleware, adminMiddleware, uploadPriceList.single('listaPrecios')], (req, res) => {
+  handleUpload(req, res);
 });
 
 // Obtener todos los clientes
@@ -514,7 +510,7 @@ app.put('/api/admin/clientes/:id', [authMiddleware, adminMiddleware], (req, res)
   }
 
   if (lista_precios) {
-    if (!['mecanicos', 'finales'].includes(lista_precios)) {
+    if (!['distribuidores'].includes(lista_precios)) { // Solo permitir 'distribuidores'
       return res.status(400).json({ message: 'El campo "lista_precios" es inválido o está ausente.' });
     }
     users[userIndex].lista_precios = lista_precios;

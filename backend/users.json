@@ -5,22 +5,19 @@
     "email": "admin@distrilauquen.com",
     "password": "$2a$10$Y3Q0uIGsEVzl1rhop49zG.ojV6yVmcjLy48BdVJrIWQRlYFhQbuOm",
     "role": "admin",
-    "lista_precios": "mecanicos",
-    "createdAt": "2026-08-14T01:13:43.965Z",
-    "apellido": "Alcalde",
-    "telefono": "11111111",
-    "cuit": "20-12123456-7"
+    "lista_precios": "distribuidores",
+    "createdAt": "2026-08-14T01:13:43.965Z"
   },
   {
     "id": 2,
     "username": "Adrian",
-    "email": "madronala@gmail.com",
-    "password": "$2a$10$M923I3QrtLaLoEJa8blLhuIczCVOPpbXIdf2YUx7RllbS6YT.qiju",
-    "role": "cliente",
-    "lista_precios": "finales",
-    "createdAt": "2026-08-14T01:32:30.574Z",
     "apellido": "Madroñal",
     "telefono": "1165064812",
-    "cuit": "20-30826310-0"
+    "cuit": "20-30826310-0",
+    "email": "ventas@conexhard.com.ar",
+    "password": "$2a$10$ZSYKF5UTPz9Qxq8iwqiOs.Tw6zV3zIbS419qOkIW7GV2dsqMhmCCu",
+    "role": "cliente",
+    "lista_precios": "distribuidores",
+    "createdAt": "2026-08-14T20:13:51.119Z"
   }
 ]

@@ -33,7 +33,7 @@ function Uploader({ title, description, listType }) {
     formData.append('listaPrecios', file);
 
     try {
-      const response = await fetchWithAuth(`/api/admin/upload-lista/${listType}`, {
+      const response = await fetchWithAuth(`/api/admin/upload-lista`, { // Endpoint unificado
         method: 'POST',
         body: formData,
       });
@@ -168,8 +168,7 @@ function ClientManager() {
                       onChange={(e) => handleListChange(client.id, e.target.value)}
                       style={{ padding: '6px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }}
                     >
-                      <option value="finales">Finales</option>
-                      <option value="mecanicos">Mecánicos</option>
+                      <option value="distribuidores">Distribuidores</option>
                     </select>
                   )}
                 </td>
@@ -192,8 +191,7 @@ export default function Admin() {
         </header>
 
         <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-          <Uploader title="Lista para Mecánicos" description="Sube el archivo (debe llamarse distribuidor.xlsx) para actualizar los precios de mecánicos/distribuidores." listType="mecanicos" />
-          <Uploader title="Lista para Clientes Finales" description="Sube el archivo (debe llamarse final.xlsx) para actualizar los precios para el público general." listType="finales" />
+          <Uploader title="Lista de Precios para Distribuidores" description="Sube el archivo (debe llamarse lista.xlsx) para actualizar los precios." listType="distribuidores" />
         </div>
         
         <ClientManager />

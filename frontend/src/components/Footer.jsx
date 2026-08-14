@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Footer.module.css';
 import logoImage from '@/assets/logo.png';
-import { Mail, Phone, MapPin } from 'lucide-react';
+import { Mail, Phone, MapPin, Instagram, Facebook } from 'lucide-react';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -15,6 +15,15 @@ const Footer = () => {
             <img src={logoImage} alt="DistriLauquen Logo" className={styles.logoImage} />
           </Link>
           <p className={styles.tagline}>Tu socio de confianza en repuestos para el automotor.</p>
+          <div className={styles.divider}></div>
+          <div className={styles.socialIcons}>
+            <a href="https://www.instagram.com/distri.lauquen/" target="_blank" rel="noopener noreferrer" aria-label="Instagram de DistriLauquen">
+              <Instagram size={24} />
+            </a>
+            <a href="https://www.facebook.com/distrilauquenrepuestos/?locale=es_LA" target="_blank" rel="noopener noreferrer" aria-label="Facebook de DistriLauquen">
+              <Facebook size={24} />
+            </a>
+          </div>
         </div>
         <div className={styles.footerLinks}>
           <h4>Navegación</h4>
