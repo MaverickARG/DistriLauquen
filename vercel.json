@@ -3,16 +3,13 @@
   "builds": [
     {
       "src": "frontend/package.json",
-      "use": "@vercel/vite",
-      "config": {
-        "project": "frontend"
-      }
+      "use": "@vercel/vite"
     },
     {
       "src": "backend/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["backend/scripts/parse_excel.py", "backend/requirements.txt"]
+        "includeFiles": ["backend/scripts/**", "backend/requirements.txt"]
       }
     }
   ],
@@ -23,7 +20,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/frontend"
+      "destination": "/frontend/index.html"
     }
   ]
 }
