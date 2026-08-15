@@ -596,6 +596,17 @@ app.delete('/api/admin/clientes/:id', [authMiddleware, adminMiddleware], (req, r
   res.json({ message: 'Usuario eliminado con éxito.' });
 });
 
+const path = require('path'); // si ya lo tenés importado arriba, no lo repitas
+
+// Servir los archivos ya compilados del frontend (Vite)
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+
+// Cualquier ruta que no sea /api/... devuelve el index.html del frontend
+// (para que las rutas de React Router funcionen al recargar la página)
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dist', 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
 });
