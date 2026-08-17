@@ -40,6 +40,18 @@ export default function Clientes() {
     }
   }, [location]);
 
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(''), 5000);
+    return () => clearTimeout(timer);
+  }, [success]);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(''), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
   const clearForm = () => {
     setUsername('');
     setNombre('');
@@ -132,8 +144,10 @@ export default function Clientes() {
           else navigate('/catalogo');
         }, 500); // Reducir el tiempo de espera para una mejor UX
       } else {
-        setSuccess('¡Registro exitoso! Ahora puedes iniciar sesión.');
-        handleSwitchMode(); // Cambiamos al modo login
+        setSuccess('Registro enviado correctamente. Debe esperar la aprobación del administrador.');
+        setIsLogin(true);
+        setError('');
+        clearForm();
       }
     } catch (err) {
       setError(err.message);
@@ -143,8 +157,32 @@ export default function Clientes() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 80px)', backgroundColor: 'var(--bg-dark)', padding: '20px' }}>
-      <div style={{ width: '100%', maxWidth: '450px', padding: '40px', backgroundColor: 'var(--bg-black)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+    <>
+      {(error || success) && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 1000,
+          maxWidth: '420px',
+          padding: '14px 18px',
+          borderRadius: '12px',
+          border: `1px solid ${error ? '#ef4444' : '#22c55e'}`,
+          backgroundColor: error ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
+          color: error ? '#fca5a5' : '#86efac',
+          boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}>
+          <AlertCircle size={18} />
+          <span>{error || success}</span>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 80px)', backgroundColor: 'var(--bg-dark)', padding: '20px' }}>
+        <div style={{ width: '100%', maxWidth: '450px', padding: '40px', backgroundColor: 'var(--bg-black)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
         <h1 style={{ textAlign: 'center', fontSize: '28px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '12px' }}>
           {isLogin ? 'Acceso Clientes' : 'Crear Cuenta'}
         </h1>
@@ -294,5 +332,6 @@ export default function Clientes() {
         </div>
       </div>
     </div>
+    </>
   );
 }
