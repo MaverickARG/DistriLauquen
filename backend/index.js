@@ -77,6 +77,7 @@ function saveUsers(users) {
         password: hashedPassword,
         role: 'admin',
         lista_precios: 'distribuidores',
+        activo: true, // El admin se crea activo por defecto
         createdAt: new Date().toISOString()
       };
       saveUsers([adminUser]);
@@ -177,10 +178,23 @@ const authMiddleware = (req, res, next) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Acceso denegado. No se proveyó un token.' });
   }
+
   const token = authHeader.split(' ')[1];
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded.user; // Añadimos el payload del user al request
+    const users = getUsers();
+    const currentUser = users.find(u => u.id === decoded.user.id);
+
+    if (!currentUser) {
+      return res.status(401).json({ message: 'Usuario no encontrado.' });
+    }
+
+    if (currentUser.role === 'cliente' && !currentUser.activo) {
+      return res.status(403).json({ message: 'Tu cuenta está desactivada por un administrador.' });
+    }
+
+    req.user = { ...decoded.user, activo: currentUser.activo };
     next();
   } catch (error) {
     res.status(401).json({ message: 'Token inválido o expirado.' });
@@ -284,6 +298,7 @@ app.post('/api/auth/register', async (req, res) => {
     password: hashedPassword,
     role: 'cliente', // Todos los usuarios nuevos son clientes
     lista_precios: 'distribuidores', // Por defecto, ven precios de distribuidor
+    activo: false, // Los nuevos usuarios deben ser activados por un admin
     createdAt: new Date().toISOString()
   };
 
@@ -308,6 +323,11 @@ app.post('/api/auth/login', async (req, res) => {
   // Usamos bcrypt.compare para verificar la contraseña de forma segura
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return res.status(401).json({ message: 'Credenciales inválidas.' }); // Mensaje genérico por seguridad
+  }
+
+  // Verificamos si el usuario cliente está activo
+  if (user.role === 'cliente' && !user.activo) {
+    return res.status(403).json({ message: 'Tu cuenta está pendiente de activación por un administrador.' });
   }
 
   // Creamos el token JWT
@@ -537,6 +557,32 @@ app.put('/api/admin/clientes/:id', [authMiddleware, adminMiddleware], (req, res)
 
   console.log(`🔧 Datos del usuario ID ${userId} actualizados.`);
   res.json({ message: 'Usuario actualizado con éxito.', user: users[userIndex] });
+});
+
+// Endpoint para obtener el número de usuarios pendientes de activación
+app.get('/api/admin/pending-count', [authMiddleware, adminMiddleware], (req, res) => {
+  const users = getUsers();
+  const pendingCount = users.filter(u => u.role === 'cliente' && !u.activo).length;
+  res.json({ pendingCount });
+});
+
+// Endpoint para que el admin active/desactive un cliente
+app.put('/api/admin/clientes/:id/toggle-active', [authMiddleware, adminMiddleware], (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { activo } = req.body;
+
+  if (typeof activo !== 'boolean') {
+    return res.status(400).json({ message: 'El estado "activo" es requerido y debe ser un booleano.' });
+  }
+
+  let users = getUsers();
+  const userIndex = users.findIndex(u => u.id === userId);
+  if (userIndex === -1) return res.status(404).json({ message: 'Usuario no encontrado.' });
+
+  users[userIndex].activo = activo;
+  saveUsers(users);
+  console.log(`🔧 Estado de activación del usuario ID ${userId} cambiado a ${activo}.`);
+  res.json({ message: 'Estado de activación actualizado con éxito.', user: users[userIndex] });
 });
 
 // Endpoint para que el admin actualice el perfil de un cliente (apellido, telefono, cuit, email)
