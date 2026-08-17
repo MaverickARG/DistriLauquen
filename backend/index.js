@@ -1,13 +1,5 @@
 require('dotenv').config(); // Carga las variables de entorno desde el archivo .env
 
-// --- CÓDIGO DE DIAGNÓSTICO PARA RENDER ---
-console.log("--- VARIABLES DE ENTORNO DETECTADAS ---");
-console.log(`¿Está JWT_SECRET definida?: ${process.env.JWT_SECRET ? 'Sí' : 'NO'}`);
-console.log(`¿Está JWT_RESET_SECRET definida?: ${process.env.JWT_RESET_SECRET ? 'Sí' : 'NO'}`);
-console.log(`Puerto detectado (PORT): ${process.env.PORT}`);
-console.log("---------------------------------------");
-// --- FIN DEL CÓDIGO DE DIAGNÓSTICO ---
-
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -22,22 +14,22 @@ const app = express();
 const PORT = process.env.PORT || 3001; // El puerto ahora también puede venir del .env
 
 // --- Verificación de Variables de Entorno Críticas ---
-const requiredEnvVars = [
-  'JWT_SECRET',
-  'JWT_RESET_SECRET',
-  'EMAIL_HOST',
-  'EMAIL_PORT',
-  'EMAIL_USER',
-  'EMAIL_PASS',
-];
+const fatalEnvVars = ['JWT_SECRET', 'JWT_RESET_SECRET'];
+const warningEnvVars = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS'];
 
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingFatalVars = fatalEnvVars.filter(varName => !process.env[varName]);
+const missingWarningVars = warningEnvVars.filter(varName => !process.env[varName]);
 
-if (missingEnvVars.length > 0) {
+if (missingFatalVars.length > 0) {
   console.error("❌ ERROR FATAL: Faltan las siguientes variables de entorno críticas:");
-  missingEnvVars.forEach(varName => console.error(`  - ${varName}`));
+  missingFatalVars.forEach(varName => console.error(`  - ${varName}`));
   console.error("\nAsegúrate de haberlas añadido en la pestaña 'Environment' de tu servicio en Render.");
   process.exit(1);
+}
+
+if (missingWarningVars.length > 0) {
+  console.warn("🟡 ADVERTENCIA: Faltan variables de entorno para el envío de emails. La función de reseteo de contraseña no funcionará.");
+  missingWarningVars.forEach(varName => console.warn(`  - ${varName}`));
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
