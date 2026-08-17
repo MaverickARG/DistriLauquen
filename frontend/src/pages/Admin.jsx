@@ -1,31 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Upload, Users, Save, AlertTriangle, CheckCircle, RefreshCw, Edit2, Trash2, Key } from 'lucide-react';
+import { fetchWithAuth } from '../components/fetchWithAuth.js';
 import styles from './Admin.module.css'; // Importamos los estilos para el switch
 const apiUrl = import.meta.env.VITE_API_URL;
 
-// Componente para el switch de activación
+// Componente para el switch de activación tipo slider
 const ToggleSwitch = ({ checked, onChange }) => (
-  <label className={styles.switch}>
+  <label className={styles.switch} aria-label={checked ? 'Usuario activo' : 'Usuario inactivo'}>
     <input type="checkbox" checked={checked} onChange={onChange} />
-    <span className={`${styles.slider} ${styles.round}`}></span>
+    <span className={styles.slider}></span>
   </label>
 );
-
-const fetchWithAuth = async (url, options = {}) => {
-  const token = localStorage.getItem('token');
-  const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${token}`,
-  };
-  if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
-  }
-  const response = await fetch(`${apiUrl}${url}`, { ...options, headers });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.message || 'Error en la petición');
-  return data;
-};
 
 function Uploader({ title, description, listType }) {
   const [file, setFile] = useState(null);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/AuthContext';
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { fetchWithAuth } from './fetchWithAuth.js';
 import styles from './Header.module.css';
 import { Menu, X, Bell } from 'lucide-react';
 import logoImage from '@/assets/logo.png';

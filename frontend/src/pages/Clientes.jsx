@@ -28,9 +28,15 @@ export default function Clientes() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    // Mostrar mensaje si se redirige desde una sesión expirada
+    // Mostrar mensaje si se redirige desde una sesión expirada o usuario desactivado
     if (location.state?.message) {
       setError(location.state.message);
+      return;
+    }
+
+    const message = new URLSearchParams(location.search).get('message');
+    if (message) {
+      setError(message);
     }
   }, [location]);
 
