@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3001; // El puerto ahora también puede venir d
 
 // --- Verificación de Variables de Entorno Críticas ---
 const fatalEnvVars = ['JWT_SECRET', 'JWT_RESET_SECRET'];
-const warningEnvVars = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS'];
+const warningEnvVars = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS', 'FRONTEND_URL'];
 
 const missingFatalVars = fatalEnvVars.filter(varName => !process.env[varName]);
 const missingWarningVars = warningEnvVars.filter(varName => !process.env[varName]);
@@ -354,7 +354,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   if (user) {
     try {
       const resetToken = jwt.sign({ id: user.id }, JWT_RESET_SECRET, { expiresIn: '15m' });
-      const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
       const mailOptions = {
         from: `"DistriLauquen" <${process.env.EMAIL_FROM}>`,
