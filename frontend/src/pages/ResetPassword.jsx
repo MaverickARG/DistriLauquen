@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Lock, AlertCircle } from 'lucide-react';
 
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function ResetPassword() {
   const { token } = useParams();
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function ResetPassword() {
     setError('');
 
     try {
-      const response = await fetch(`/api/auth/reset-password/${token}`, {
+      const response = await fetch(`${apiUrl}/api/auth/reset-password/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, DollarSign, Package, Tag, Layers, RefreshCw, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/AuthContext';
 import { useNavigate } from 'react-router-dom';
+const apiUrl = import.meta.env.VITE_API_URL;
 
 export default function Catalogo() {
   const [busqueda, setBusqueda] = useState('');
@@ -58,7 +59,7 @@ export default function Catalogo() {
     if (!token) return; // No buscar si no hay token
     setCargando(true);
     try {
-      const res = await fetch(`/api/buscar?q=${encodeURIComponent(busqueda)}&limite=100&pagina=${paginaReq}`, {
+      const res = await fetch(`${apiUrl}/api/buscar?q=${encodeURIComponent(busqueda)}&limite=100&pagina=${paginaReq}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

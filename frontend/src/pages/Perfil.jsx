@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, FileText, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/AuthContext';
 
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function Perfil() {
   const navigate = useNavigate();
   const { user, token, login } = useAuth();
@@ -26,7 +27,7 @@ export default function Perfil() {
       // Cargar datos del usuario en el formulario
       const fetchUserData = async () => {
         try {
-          const res = await fetch('/api/auth/me', {
+          const res = await fetch(`${apiUrl}/api/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (!res.ok) throw new Error('No se pudieron cargar los datos del usuario.');
@@ -76,7 +77,7 @@ export default function Perfil() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/profile', {
+      const response = await fetch(`${apiUrl}/api/auth/profile`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

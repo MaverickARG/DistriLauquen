@@ -3,6 +3,7 @@ import { User, Lock, Mail, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/AuthContext';
 
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function Clientes() {
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
@@ -104,7 +105,7 @@ export default function Clientes() {
     }
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(`${apiUrl}${url}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

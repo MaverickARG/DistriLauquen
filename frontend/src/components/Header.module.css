@@ -193,3 +193,31 @@
     display: block;
   }
 }
+.notificationBell {
+  position: relative;
+  color: var(--text-secondary);
+  margin-right: 16px;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.notificationBell:hover {
+  color: var(--brand-yellow);
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  background-color: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}

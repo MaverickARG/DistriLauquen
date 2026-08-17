@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/AuthContext';
 
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function ChangePassword() {
   const navigate = useNavigate();
   const { token, logout } = useAuth();
@@ -37,7 +38,7 @@ export default function ChangePassword() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/change-password', {
+      const response = await fetch(`${apiUrl}/api/auth/change-password`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

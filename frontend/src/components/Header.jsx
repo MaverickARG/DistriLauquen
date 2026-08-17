@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/AuthContext';
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import styles from './Header.module.css';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Bell } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 
 const navLinks = [
@@ -20,6 +21,7 @@ export default function Header() {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [pendingCount, setPendingCount] = useState(0);
 
   const handleLogout = () => {
     logout();
@@ -76,6 +78,25 @@ export default function Header() {
     }
   }, [location]);
 
+  // Obtener usuarios pendientes si el usuario es admin
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      const fetchPendingCount = async () => {
+        try {
+          const data = await fetchWithAuth('/api/admin/pending-count');
+          setPendingCount(data.pendingCount || 0);
+        } catch (error) {
+          console.error("Error fetching pending users count:", error);
+        }
+      };
+
+      fetchPendingCount(); // Llamada inicial
+      const interval = setInterval(fetchPendingCount, 60000); // Consultar cada 60 segundos
+
+      return () => clearInterval(interval); // Limpiar el intervalo al desmontar
+    }
+  }, [user]);
+
   return (
     <header className={styles.header}>
       <Link to="/" className={styles.logoLink} onClick={handleHomeClick}>
@@ -96,6 +117,17 @@ export default function Header() {
       </nav>
 
       <div className={styles.actions}>
+        {user?.role === 'admin' && (
+          <Link to="/admin" className={styles.notificationBell} title={`${pendingCount} usuarios pendientes`}>
+            <Bell />
+            {pendingCount > 0 && (
+              <span className={styles.notificationBadge}>
+                {pendingCount}
+              </span>
+            )}
+          </Link>
+        )}
+
         {user ? (
             <div className={styles.userMenu} ref={dropdownRef}>
               <button onClick={() => setDropdownOpen(!isDropdownOpen)} className={styles.userButton}>

@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Upload, Users, Save, AlertTriangle, CheckCircle, RefreshCw, Edit2, Trash2, Key } from 'lucide-react';
+import styles from './Admin.module.css'; // Importamos los estilos para el switch
+const apiUrl = import.meta.env.VITE_API_URL;
+
+// Componente para el switch de activación
+const ToggleSwitch = ({ checked, onChange }) => (
+  <label className={styles.switch}>
+    <input type="checkbox" checked={checked} onChange={onChange} />
+    <span className={`${styles.slider} ${styles.round}`}></span>
+  </label>
+);
 
 const fetchWithAuth = async (url, options = {}) => {
   const token = localStorage.getItem('token');
@@ -11,7 +21,10 @@ const fetchWithAuth = async (url, options = {}) => {
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
-  return fetch(url, { ...options, headers });
+  const response = await fetch(`${apiUrl}${url}`, { ...options, headers });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Error en la petición');
+  return data;
 };
 
 function Uploader({ title, description, listType }) {
@@ -34,12 +47,10 @@ function Uploader({ title, description, listType }) {
     formData.append('listaPrecios', file);
 
     try {
-      const response = await fetchWithAuth(`/api/admin/upload-lista`, { // Endpoint unificado
+      await fetchWithAuth(`/api/admin/upload-lista`, {
         method: 'POST',
         body: formData,
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Error en el servidor');
       setStatus({ type: 'success', message: '¡Lista de precios actualizada con éxito!' });
     } catch (error) {
       setStatus({ type: 'error', message: `Error: ${error.message}` });
@@ -96,10 +107,10 @@ function ClientManager() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetchWithAuth('/api/admin/clientes');
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Error al cargar clientes');
-      setClients(data);
+      const data = await fetchWithAuth('/api/admin/clientes');
+      // Ordenamos los clientes: los inactivos (false) primero.
+      const sortedData = data.sort((a, b) => (a.activo === b.activo ? 0 : a.activo ? 1 : -1));
+      setClients(sortedData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -111,30 +122,101 @@ function ClientManager() {
     fetchClients();
   }, [fetchClients]);
 
-  const handleListChange = async (clientId, newPriceList) => {
+  const handleToggleActive = async (user) => {
     try {
-      const response = await fetchWithAuth(`/api/admin/clientes/${clientId}`, {
+      const updatedUser = await fetchWithAuth(`/api/admin/clientes/${user.id}/toggle-active`, {
         method: 'PUT',
-        body: JSON.stringify({ lista_precios: newPriceList }),
+        body: JSON.stringify({ activo: !user.activo }),
       });
-      if (!response.ok) throw new Error('No se pudo actualizar');
-      // Actualizar la lista localmente para reflejar el cambio
-      setClients(prevClients =>
-        prevClients.map(client =>
-          client.id === clientId ? { ...client, lista_precios: newPriceList } : client
-        )
-      );
+      // Volvemos a ordenar la lista después de actualizar un usuario
+      setClients(prevClients => {
+        const newClients = prevClients.map(c => c.id === user.id ? updatedUser.user : c);
+        return newClients.sort((a, b) => (a.activo === b.activo ? 0 : a.activo ? 1 : -1));
+      });
     } catch (error) {
-      alert(`Error al actualizar: ${error.message}`);
+      alert(`Error al cambiar el estado: ${error.message}`);
     }
   };
+
+  const handleAddClient = async () => {
+    if (!newClientData.username || !newClientData.apellido || !newClientData.email || !newClientData.password) {
+        alert('Usuario, apellido, email y contraseña son requeridos.');
+        return;
+    }
+    try {
+        // Usamos fetch normal porque no requiere autenticación
+        const res = await fetch(`${apiUrl}/api/auth/register`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(newClientData) 
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Error al crear cliente');
+        
+        await fetchClients();
+        setShowAddForm(false);
+        setNewClientData({ username: '', nombre: '', apellido: '', email: '', telefono: '', cuit: '', password: '' });
+        alert('Cliente creado con éxito. Recuerda activarlo en la lista.');
+    } catch (err) { 
+        alert(`Error: ${err.message}`); 
+    }
+  };
+
+  const handleSaveChanges = async (client) => {
+    try {
+        const payload = { 
+            nombre: editedClient.nombre || '', 
+            apellido: editedClient.apellido || '', 
+            telefono: editedClient.telefono || '', 
+            cuit: editedClient.cuit || '', 
+            email: editedClient.email || '' 
+        };
+        const data = await fetchWithAuth(`/api/admin/clientes/${client.id}/profile`, { 
+            method: 'PUT', 
+            body: JSON.stringify(payload) 
+        });
+        setClients(prev => prev.map(c => c.id === client.id ? ({ ...c, ...data.user }) : c));
+        alert('Cambios guardados.');
+        setEditingClientId(null);
+    } catch (err) { 
+        alert(`Error: ${err.message}`); 
+    }
+  };
+
+  const handleDeleteClient = async (client) => {
+    if (!confirm(`Eliminar al usuario ${client.username}? Esta acción es irreversible.`)) return;
+    try {
+        await fetchWithAuth(`/api/admin/clientes/${client.id}`, { method: 'DELETE' });
+        setClients(prev => prev.filter(c => c.id !== client.id));
+        alert('Usuario eliminado.');
+    } catch (err) {
+        alert(`Error: ${err.message}`);
+    }
+  };
+
+  const handleChangePassword = async (client) => {
+    if (!newPassword || newPassword.length < 6) {
+      alert('Ingresa una contraseña nueva de al menos 6 caracteres.');
+      return;
+    }
+    try {
+      await fetchWithAuth(`/api/admin/clientes/${client.id}/password`, {
+        method: 'POST',
+        body: JSON.stringify({ newPassword }),
+      });
+      alert('Contraseña cambiada.');
+      setNewPassword('');
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  }
 
   if (loading) return <div>Cargando clientes...</div>;
   if (error) return <div style={{ color: '#fca5a5' }}>Error: {error}</div>;
 
   return (
     <div style={{ backgroundColor: 'var(--bg-black)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', marginTop: '24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginTop: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginTop: 0, marginBottom: '16px' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, color: 'var(--text-primary)' }}><Users size={24} color="var(--brand-yellow)" /> Gestión de Clientes</h2>
         <div>
           <button onClick={() => setShowAddForm(s => !s)} style={{ backgroundColor: 'var(--brand-yellow)', color: 'var(--bg-black)', border: 'none', padding: '10px 12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>{showAddForm ? 'Cerrar' : 'Agregar Cliente'}</button>
@@ -155,20 +237,7 @@ function ClientManager() {
             </div>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <input placeholder="Contraseña" type="password" value={newClientData.password} onChange={(e) => setNewClientData(prev => ({ ...prev, password: e.target.value }))} style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', width: '280px', backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)' }} />
-              <button onClick={async () => {
-                // Validaciones mínimas
-                if (!newClientData.username || !newClientData.apellido || !newClientData.email || !newClientData.password) return alert('Usuario, apellido, email y contraseña son requeridos.');
-                try {
-                  const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newClientData) });
-                  const data = await res.json();
-                  if (!res.ok) throw new Error(data.message || 'Error al crear cliente');
-                  // Refrescar lista de clientes
-                  await fetchClients();
-                  setShowAddForm(false);
-                  setNewClientData({ username: '', nombre: '', apellido: '', email: '', telefono: '', cuit: '', password: '' });
-                  alert('Cliente creado con éxito.');
-                } catch (err) { alert(`Error: ${err.message}`); }
-              }} style={{ backgroundColor: 'var(--brand-yellow)', color: 'var(--bg-black)', border: 'none', padding: '10px 14px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>Crear</button>
+              <button onClick={handleAddClient} style={{ backgroundColor: 'var(--brand-yellow)', color: 'var(--bg-black)', border: 'none', padding: '10px 14px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>Crear</button>
             </div>
           </div>
         )}
@@ -179,37 +248,26 @@ function ClientManager() {
               <th style={{ padding: '12px' }}>Nombre</th>
               <th style={{ padding: '12px' }}>Apellido</th>
               <th style={{ padding: '12px' }}>Email</th>
-              <th style={{ padding: '12px' }}>Teléfono</th>
-              <th style={{ padding: '12px' }}>CUIT</th>
+              <th style={{ padding: '12px', textAlign: 'center' }}>Habilitado</th>
               <th style={{ padding: '12px' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {clients.map(client => (
+            {clients.filter(c => c.role === 'cliente').map(client => (
               <React.Fragment key={client.id}>
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: client.activo ? 'transparent' : 'rgba(255, 184, 0, 0.05)' }}>
                   <td style={{ padding: '12px' }}>{client.username}</td>
                   <td style={{ padding: '12px' }}>{client.nombre || ''}</td>
                   <td style={{ padding: '12px' }}>{client.apellido}</td>
                   <td style={{ padding: '12px' }}>{client.email}</td>
-                  <td style={{ padding: '12px' }}>{client.telefono}</td>
-                  <td style={{ padding: '12px' }}>{client.cuit}</td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>
+                    <ToggleSwitch checked={client.activo} onChange={() => handleToggleActive(client)} />
+                  </td>
                   <td style={{ padding: '12px' }}>
                     <button onClick={() => { setEditingClientId(client.id); setEditedClient({ ...client }); setNewPassword(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', marginRight: '8px' }} title="Editar">
                       <Edit2 size={18} color="var(--brand-yellow)" />
                     </button>
-                    <button onClick={async () => {
-                      if (!confirm(`Eliminar al usuario ${client.username}? Esta acción es irreversible.`)) return;
-                      try {
-                        const res = await fetchWithAuth(`/api/admin/clientes/${client.id}`, { method: 'DELETE' });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data.message || 'Error al eliminar');
-                        setClients(prev => prev.filter(c => c.id !== client.id));
-                        alert('Usuario eliminado.');
-                      } catch (err) {
-                        alert(`Error: ${err.message}`);
-                      }
-                    }} style={{ background: 'none', border: 'none', cursor: 'pointer' }} title="Eliminar">
+                    <button onClick={() => handleDeleteClient(client)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} title="Eliminar">
                       <Trash2 size={18} color="#ef4444" />
                     </button>
                   </td>
@@ -217,7 +275,7 @@ function ClientManager() {
 
                 {editingClientId === client.id && (
                   <tr>
-                    <td colSpan={6} style={{ padding: '12px', backgroundColor: 'var(--bg-black)' }}>
+                    <td colSpan={6} style={{ padding: '16px', backgroundColor: 'var(--bg-dark)' }}>
                       <div style={{ display: 'flex', gap: '16px', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', gap: '12px' }}>
                           <div style={{ flex: 1 }}>
@@ -250,38 +308,18 @@ function ClientManager() {
                             <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)' }}>CUIT</label>
                             <input value={editedClient.cuit || ''} onChange={(e) => setEditedClient(prev => ({ ...prev, cuit: e.target.value }))} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-primary)' }} />
                           </div>
-                          <div style={{ width: '260px' }}>
+                          <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)' }}>Nueva contraseña</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
                               <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Dejar vacío para no cambiar" style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-dark)', color: 'var(--text-primary)' }} />
-                              <button onClick={async () => {
-                                if (!newPassword) return alert('Ingresa una contraseña nueva de al menos 6 caracteres.');
-                                try {
-                                  const res = await fetchWithAuth(`/api/admin/clientes/${client.id}/password`, { method: 'POST', body: JSON.stringify({ newPassword }), });
-                                  const data = await res.json();
-                                  if (!res.ok) throw new Error(data.message || 'Error al actualizar contraseña');
-                                  alert('Contraseña cambiada.');
-                                  setNewPassword('');
-                                } catch (err) { alert(`Error: ${err.message}`); }
-                              }} style={{ background: 'var(--brand-yellow)', border: 'none', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer' }} title="Cambiar contraseña"><Key size={16} /></button>
+                              <button onClick={() => handleChangePassword(client)} style={{ background: 'var(--brand-yellow)', border: 'none', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer' }} title="Cambiar contraseña"><Key size={16} /></button>
                             </div>
                           </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
                           <button onClick={() => { setEditingClientId(null); setEditedClient(null); setNewPassword(''); }} style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Cancelar</button>
-                          <button onClick={async () => {
-                            // Guardar cambios de perfil
-                            try {
-                              const payload = { nombre: editedClient.nombre || '', apellido: editedClient.apellido || '', telefono: editedClient.telefono || '', cuit: editedClient.cuit || '', email: editedClient.email || '' };
-                              const res = await fetchWithAuth(`/api/admin/clientes/${client.id}/profile`, { method: 'PUT', body: JSON.stringify(payload) });
-                              const data = await res.json();
-                              if (!res.ok) throw new Error(data.message || 'Error al guardar');
-                              setClients(prev => prev.map(c => c.id === client.id ? ({ ...c, ...data.user }) : c));
-                              alert('Cambios guardados.');
-                              setEditingClientId(null);
-                            } catch (err) { alert(`Error: ${err.message}`); }
-                          }} style={{ background: 'var(--brand-yellow)', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer' }}>Guardar cambios</button>
+                          <button onClick={() => handleSaveChanges(client)} style={{ background: 'var(--brand-yellow)', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, color: 'var(--bg-black)' }}>Guardar cambios</button>
                         </div>
                       </div>
                     </td>
@@ -298,7 +336,7 @@ function ClientManager() {
 
 export default function Admin() {
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-dark)', padding: '20px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-dark)', padding: '20px' }}> 
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         <header style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
           <div>
