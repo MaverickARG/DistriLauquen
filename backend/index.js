@@ -1,5 +1,13 @@
 require('dotenv').config(); // Carga las variables de entorno desde el archivo .env
 
+// --- CÓDIGO DE DIAGNÓSTICO PARA RENDER ---
+console.log("--- VARIABLES DE ENTORNO DETECTADAS ---");
+console.log(`¿Está JWT_SECRET definida?: ${process.env.JWT_SECRET ? 'Sí' : 'NO'}`);
+console.log(`¿Está JWT_RESET_SECRET definida?: ${process.env.JWT_RESET_SECRET ? 'Sí' : 'NO'}`);
+console.log(`Puerto detectado (PORT): ${process.env.PORT}`);
+console.log("---------------------------------------");
+// --- FIN DEL CÓDIGO DE DIAGNÓSTICO ---
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -12,19 +20,28 @@ const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3001; // El puerto ahora también puede venir del .env
-const JWT_SECRET = process.env.JWT_SECRET;
 
-if (!JWT_SECRET) {
-  console.error("❌ ERROR FATAL: La variable de entorno JWT_SECRET no está definida.");
-  console.error("Crea un archivo .env en la carpeta 'backend' y añade JWT_SECRET='tu_secreto_aqui'");
-  process.exit(1); // Detiene la aplicación si el secreto no está configurado
-}
-const JWT_RESET_SECRET = process.env.JWT_RESET_SECRET;
-if (!JWT_RESET_SECRET) {
-  console.error("❌ ERROR FATAL: La variable de entorno JWT_RESET_SECRET no está definida.");
-  console.error("Añade JWT_RESET_SECRET a tu archivo .env");
+// --- Verificación de Variables de Entorno Críticas ---
+const requiredEnvVars = [
+  'JWT_SECRET',
+  'JWT_RESET_SECRET',
+  'EMAIL_HOST',
+  'EMAIL_PORT',
+  'EMAIL_USER',
+  'EMAIL_PASS',
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error("❌ ERROR FATAL: Faltan las siguientes variables de entorno críticas:");
+  missingEnvVars.forEach(varName => console.error(`  - ${varName}`));
+  console.error("\nAsegúrate de haberlas añadido en la pestaña 'Environment' de tu servicio en Render.");
   process.exit(1);
 }
+
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_RESET_SECRET = process.env.JWT_RESET_SECRET;
 
 app.use(cors());
 app.use(express.json());
@@ -595,8 +612,6 @@ app.delete('/api/admin/clientes/:id', [authMiddleware, adminMiddleware], (req, r
   console.log(`🗑️ Usuario ID ${userId} eliminado por admin (${removed.username}).`);
   res.json({ message: 'Usuario eliminado con éxito.' });
 });
-
-const path = require('path'); // si ya lo tenés importado arriba, no lo repitas
 
 // Servir los archivos ya compilados del frontend (Vite)
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
