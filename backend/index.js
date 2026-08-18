@@ -2,12 +2,15 @@ require('dotenv').config(); // Carga las variables de entorno desde el archivo .
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const validator = require('validator');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const multer = require('multer');
 const Database = require('better-sqlite3');
 
@@ -36,7 +39,49 @@ if (missingWarningVars.length > 0) {
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_RESET_SECRET = process.env.JWT_RESET_SECRET;
 
-app.use(cors());
+// Validar que JWT_SECRET sea suficientemente largo
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  console.error("❌ ERROR: JWT_SECRET debe tener al menos 32 caracteres.");
+  process.exit(1);
+}
+
+// --- Configuración de CORS restringido ---
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+};
+
+// --- Configuración de Rate Limiting ---
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // 5 intentos máximo
+  message: 'Demasiados intentos de inicio de sesión. Intenta de nuevo en 15 minutos.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 3, // 3 registros máximo por hora
+  message: 'Demasiados registros. Intenta de nuevo en una hora.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 3, // 3 intentos máximo por hora
+  message: 'Demasiados intentos de restablecimiento de contraseña. Intenta de nuevo en una hora.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// --- Aplicar middlewares de seguridad ---
+app.use(helmet()); // Agregar headers de seguridad
+app.use(cors(corsOptions)); // CORS restringido
 app.use(express.json());
 
 // --- Lógica de Almacenamiento de Usuarios (SQLite persistente) ---
@@ -163,8 +208,44 @@ migrateLegacyUsers();
   if (users.length === 0) {
     console.log('🟡 No se encontraron usuarios. Creando cuenta de administrador por defecto...');
     try {
+      // Generar contraseña fuerte aleatoria si no está configurada
+      const generateStrongPassword = () => {
+        const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        const numbers = '0123456789';
+        const symbols = '@$!%*?&#';
+        const all = uppercase + lowercase + numbers + symbols;
+        
+        let password = '';
+        password += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
+        password += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
+        password += numbers.charAt(Math.floor(Math.random() * numbers.length));
+        password += symbols.charAt(Math.floor(Math.random() * symbols.length));
+        
+        for (let i = 0; i < 12; i++) {
+          password += all.charAt(Math.floor(Math.random() * all.length));
+        }
+        
+        return password.split('').sort(() => Math.random() - 0.5).join('');
+      };
+
       const username = process.env.ADMIN_USERNAME || 'Dlauquen';
-      const password = process.env.ADMIN_PASSWORD || 'Lauquen2026+';
+      let password = process.env.ADMIN_PASSWORD;
+      
+      // Si no hay contraseña configurada, generar una fuerte
+      if (!password) {
+        password = generateStrongPassword();
+        console.log('');
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.log('⚠️  CREDENCIALES DE ADMINISTRADOR GENERADAS AUTOMÁTICAMENTE');
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.log(`Usuario: ${username}`);
+        console.log(`Contraseña: ${password}`);
+        console.log('⚠️  COPIA ESTAS CREDENCIALES EN UN LUGAR SEGURO');
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.log('');
+      }
+
       const email = process.env.ADMIN_EMAIL || 'admin@distrilauquen.com';
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -215,8 +296,8 @@ const handleUpload = (req, res) => { // Ya no necesitamos listType aquí, se asu
   console.log(`📄 Archivo de lista de precios recibido. Ejecutando script de parseo...`);
 
   const pythonScriptPath = path.join(__dirname, 'scripts', 'parse_excel.py');
-  // El script de python ya no necesita argumentos, asume 'distribuidores'
-  exec(`python "${pythonScriptPath}"`, (error, stdout, stderr) => {
+  // Usar execFile en lugar de exec para mayor seguridad
+  execFile('python', [pythonScriptPath], { timeout: 30000 }, (error, stdout, stderr) => {
     if (error) {
       console.error(`Error ejecutando el script: ${error.message}`);
       return res.status(500).json({ message: 'Error al procesar el archivo Excel.', details: stderr });
@@ -369,15 +450,38 @@ app.get('/api/buscar', authMiddleware, (req, res) => {
 // --- Endpoints de Autenticación ---
 
 // Registro de nuevos usuarios
-app.post('/api/auth/register', async (req, res) => {
-  const { username, nombre, apellido, telefono, cuit, email, password } = req.body;
+app.post('/api/auth/register', registerLimiter, async (req, res) => {
+  const { username, nombre, apellido, telefono, cuit, email, password, confirmPassword } = req.body;
 
   if (!username || !apellido || !telefono || !cuit || !email || !password) {
     return res.status(400).json({ message: 'Todos los campos son requeridos.' });
   }
 
+  // Validar email
+  if (!validator.isEmail(email)) {
+    return res.status(400).json({ message: 'El correo electrónico no es válido.' });
+  }
+
+  // Validar contraseña fuerte
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y símbolos (@$!%*?&).' });
+  }
+
+  // Validar CUIT (formato básico: XX-XXXXXXXX-X)
+  const cuitRegex = /^\d{2}-\d{8}-\d{1}$/;
+  if (!cuitRegex.test(cuit)) {
+    return res.status(400).json({ message: 'El CUIT debe tener el formato XX-XXXXXXXX-X.' });
+  }
+
+  // Sanitizar entrada
+  const sanitizedUsername = validator.trim(validator.escape(username));
+  const sanitizedNombre = validator.trim(validator.escape(nombre || ''));
+  const sanitizedApellido = validator.trim(validator.escape(apellido || ''));
+  const sanitizedTelefono = validator.trim(validator.escape(telefono || ''));
+
   const users = getUsers();
-  if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
+  if (users.find(u => u.username.toLowerCase() === sanitizedUsername.toLowerCase())) {
     return res.status(409).json({ message: 'El nombre de usuario ya existe.' });
   }
   if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
@@ -391,12 +495,12 @@ app.post('/api/auth/register', async (req, res) => {
 
   const newUser = {
     id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
-    username,
-    nombre: nombre || '',
-    apellido,
-    telefono,
+    username: sanitizedUsername,
+    nombre: sanitizedNombre,
+    apellido: sanitizedApellido,
+    telefono: sanitizedTelefono,
     cuit,
-    email,
+    email: email.toLowerCase(),
     password: hashedPassword,
     role: 'cliente', // Todos los usuarios nuevos son clientes
     lista_precios: 'distribuidores', // Por defecto, ven precios de distribuidor
@@ -412,7 +516,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Inicio de sesión de usuarios
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -463,10 +567,15 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
 });
 
 // Endpoint para solicitar reseteo de contraseña
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/api/auth/forgot-password', passwordResetLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ message: 'El correo electrónico es requerido.' });
+  }
+
+  // Validar formato de email
+  if (!validator.isEmail(email)) {
+    return res.status(400).json({ message: 'El correo electrónico no es válido.' });
   }
 
   const users = getUsers();
@@ -484,7 +593,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         to: user.email,
         subject: 'Restablecimiento de contraseña',
         html: `
-          <p>Hola ${user.username},</p>
+          <p>Hola ${validator.escape(user.username)},</p>
           <p>Recibimos una solicitud para restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:</p>
           <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Restablecer Contraseña</a>
           <p>Este enlace expirará en 15 minutos.</p>
@@ -514,6 +623,12 @@ app.post('/api/auth/reset-password/:token', async (req, res) => {
     return res.status(400).json({ message: 'La nueva contraseña es requerida.' });
   }
 
+  // Validar contraseña fuerte
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y símbolos (@$!%*?&).' });
+  }
+
   try {
     const decoded = jwt.verify(token, JWT_RESET_SECRET);
     const userId = decoded.id;
@@ -539,8 +654,10 @@ app.post('/api/auth/change-password', authMiddleware, async (req, res) => {
     return res.status(400).json({ message: 'Todos los campos son requeridos.' });
   }
 
-  if (newPassword.length < 6) {
-    return res.status(400).json({ message: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+  // Validar contraseña fuerte
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(newPassword)) {
+    return res.status(400).json({ message: 'La nueva contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y símbolos (@$!%*?&).' });
   }
 
   let users = getUsers();
