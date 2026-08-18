@@ -233,7 +233,7 @@ export default function Catalogo() {
                   </p>
                   {codigoPrincipal && (
                     <p style={{ margin: 0, fontSize: '13px', color: 'var(--metal-gray)', fontFamily: 'monospace' }}>
-                      <strong>Código Principal:</strong> {codigoPrincipal}
+                      {codigoPrincipal}
                     </p>
                   )}
                 </div>
