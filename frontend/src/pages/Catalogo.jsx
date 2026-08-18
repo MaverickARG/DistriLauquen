@@ -192,7 +192,10 @@ export default function Catalogo() {
             const codigoTercero = item.codigo_tercero
               || item.codigoTercero
               || item.cod_tercero
+              || (Array.isArray(item.datos_raw) ? item.datos_raw[0] : null)
               || (Array.isArray(item.datos_raw) ? item.datos_raw[1] : null);
+            const codigoPrincipal = item.codigo
+              || (item.hoja_origen ? item.hoja_origen.slice(0, 3).toUpperCase() : null);
 
             return (
               <div 
@@ -219,25 +222,20 @@ export default function Catalogo() {
                     {marca && codigoTercero && <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>-</span>}
                     {codigoTercero && (
                       <span style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-                        Código: {codigoTercero}
+                        {codigoTercero}
                       </span>
                     )}
                   </div>
 
-                  {/* Descripción principal y código tercero si existe */}
+                  {/* Descripción principal */}
                   <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-primary)', fontWeight: '500', marginBottom: '4px' }}>
                     {item.descripcion || 'Sin descripción'}
                   </p>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--metal-gray)', fontFamily: 'monospace', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    {(() => {
-                      const altKeys = Object.keys(item).filter(k => /tercer|tercero|codigoter|codigo_tercero|cod_terc/i.test(k));
-                      if (altKeys.length > 0) {
-                        const key = altKeys[0];
-                        return (<span><strong>Cod. Tercero:</strong> {item[key]}</span>);
-                      }
-                      return null;
-                    })()}
-                  </p>
+                  {codigoPrincipal && (
+                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--metal-gray)', fontFamily: 'monospace' }}>
+                      <strong>Código Principal:</strong> {codigoPrincipal}
+                    </p>
+                  )}
                 </div>
 
                 {/* Bloque de Precios */}
