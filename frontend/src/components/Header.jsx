@@ -17,6 +17,9 @@ export default function Header() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const visibleNavLinks = user
+    ? [...navLinks, { name: 'Catálogo', path: '/catalogo' }]
+    : navLinks;
   
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -104,7 +107,7 @@ export default function Header() {
       </Link>
 
       <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.open : ''}`}>
-        {navLinks.map(link => (
+        {visibleNavLinks.map(link => (
           <NavLink 
             key={link.name} 
             to={link.path} 
