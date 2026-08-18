@@ -189,7 +189,10 @@ export default function Catalogo() {
           {resultados.map((item, index) => {
             const precioVenta = calcularPrecioVenta(item.precio);
             const marca = item.marca || item.hoja_origen;
-            const codigoPrincipal = item.codigo || (Array.isArray(item.datos_raw) ? item.datos_raw[0] : null);
+            const codigoTercero = item.codigo_tercero
+              || item.codigoTercero
+              || item.cod_tercero
+              || (Array.isArray(item.datos_raw) ? item.datos_raw[1] : null);
 
             return (
               <div 
@@ -206,17 +209,17 @@ export default function Catalogo() {
                 }}
               >
                 <div style={{ flex: 1, paddingRight: '16px' }}>
-                  {/* Fila superior con marca y código principal */}
+                  {/* Fila superior con marca y código tercero */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                     {marca && (
                       <span style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--brand-yellow)', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
                         {marca}
                       </span>
                     )}
-                    {marca && codigoPrincipal && <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>-</span>}
-                    {codigoPrincipal && (
+                    {marca && codigoTercero && <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>-</span>}
+                    {codigoTercero && (
                       <span style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-                        Código: {codigoPrincipal}
+                        Código: {codigoTercero}
                       </span>
                     )}
                   </div>
