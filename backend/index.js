@@ -58,7 +58,7 @@ const corsOptions = {
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // 5 intentos máximo
-  message: 'Demasiados intentos de inicio de sesión. Intenta de nuevo en 15 minutos.',
+  message: { message: 'Demasiados intentos de inicio de sesión. Intenta de nuevo en 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -66,7 +66,7 @@ const loginLimiter = rateLimit({
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 3, // 3 registros máximo por hora
-  message: 'Demasiados registros. Intenta de nuevo en una hora.',
+  message: { message: 'Demasiados registros. Intenta de nuevo en una hora.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -74,7 +74,7 @@ const registerLimiter = rateLimit({
 const passwordResetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 3, // 3 intentos máximo por hora
-  message: 'Demasiados intentos de restablecimiento de contraseña. Intenta de nuevo en una hora.',
+  message: { message: 'Demasiados intentos de restablecimiento de contraseña. Intenta de nuevo en una hora.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
