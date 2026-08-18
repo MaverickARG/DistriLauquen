@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const { exec } = require('child_process');
 const multer = require('multer');
+const Database = require('better-sqlite3');
 
 const app = express();
 const PORT = process.env.PORT || 3001; // El puerto ahora también puede venir del .env
@@ -38,20 +39,121 @@ const JWT_RESET_SECRET = process.env.JWT_RESET_SECRET;
 app.use(cors());
 app.use(express.json());
 
-// --- Lógica de Almacenamiento de Usuarios (Temporalmente en JSON) ---
-const USERS_PATH = path.join(__dirname, 'users.json');
+// --- Lógica de Almacenamiento de Usuarios (SQLite persistente) ---
+const DATA_DIR = path.join(__dirname, 'data');
+const DB_PATH = path.join(DATA_DIR, 'users.sqlite');
+
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const db = new Database(DB_PATH);
+db.pragma('journal_mode = WAL');
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    nombre TEXT,
+    apellido TEXT,
+    telefono TEXT,
+    cuit TEXT,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL,
+    lista_precios TEXT,
+    activo INTEGER NOT NULL DEFAULT 0,
+    createdAt TEXT NOT NULL
+  );
+`);
+
+function getLegacyUsers() {
+  const legacyPath = path.join(__dirname, 'users.json');
+  if (!fs.existsSync(legacyPath)) return [];
+
+  try {
+    const raw = fs.readFileSync(legacyPath, 'utf-8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn('⚠️ No se pudo leer users.json legacy:', error.message);
+    return [];
+  }
+}
+
+function migrateLegacyUsers() {
+  const legacyUsers = getLegacyUsers();
+  if (!legacyUsers.length) return;
+
+  const existingCount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
+  if (existingCount > 0) return;
+
+  const insert = db.prepare(`
+    INSERT INTO users (id, username, nombre, apellido, telefono, cuit, email, password, role, lista_precios, activo, createdAt)
+    VALUES (@id, @username, @nombre, @apellido, @telefono, @cuit, @email, @password, @role, @lista_precios, @activo, @createdAt)
+  `);
+
+  const tx = db.transaction((users) => {
+    for (const user of users) {
+      insert.run({
+        id: user.id,
+        username: user.username,
+        nombre: user.nombre || '',
+        apellido: user.apellido || '',
+        telefono: user.telefono || '',
+        cuit: user.cuit || '',
+        email: user.email || '',
+        password: user.password,
+        role: user.role || 'cliente',
+        lista_precios: user.lista_precios || 'distribuidores',
+        activo: user.activo ? 1 : 0,
+        createdAt: user.createdAt || new Date().toISOString()
+      });
+    }
+  });
+
+  tx(legacyUsers);
+  console.log(`✅ Se migraron ${legacyUsers.length} usuarios desde users.json a SQLite.`);
+}
 
 function getUsers() {
-  if (!fs.existsSync(USERS_PATH)) return [];
-  try {
-    const rawData = fs.readFileSync(USERS_PATH, 'utf-8');
-    return JSON.parse(rawData);
-  } catch (e) { return []; }
+  const rows = db.prepare('SELECT * FROM users ORDER BY id ASC').all();
+  return rows.map(row => ({
+    ...row,
+    activo: Boolean(row.activo)
+  }));
 }
 
 function saveUsers(users) {
-  fs.writeFileSync(USERS_PATH, JSON.stringify(users, null, 2), 'utf-8');
+  const insert = db.prepare(`
+    INSERT INTO users (id, username, nombre, apellido, telefono, cuit, email, password, role, lista_precios, activo, createdAt)
+    VALUES (@id, @username, @nombre, @apellido, @telefono, @cuit, @email, @password, @role, @lista_precios, @activo, @createdAt)
+  `);
+
+  const tx = db.transaction((items) => {
+    db.exec('DELETE FROM users');
+    for (const user of items) {
+      insert.run({
+        id: user.id,
+        username: user.username,
+        nombre: user.nombre || '',
+        apellido: user.apellido || '',
+        telefono: user.telefono || '',
+        cuit: user.cuit || '',
+        email: user.email || '',
+        password: user.password,
+        role: user.role || 'cliente',
+        lista_precios: user.lista_precios || 'distribuidores',
+        activo: user.activo ? 1 : 0,
+        createdAt: user.createdAt || new Date().toISOString()
+      });
+    }
+  });
+
+  tx(users);
 }
+
+migrateLegacyUsers();
 
 // --- Creación de Superusuario al inicio ---
 // Esta función se ejecuta una sola vez al arrancar el servidor.
