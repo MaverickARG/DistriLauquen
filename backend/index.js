@@ -408,28 +408,76 @@ app.get('/api/health', (req, res) => {
 });
 
 // Endpoint de búsqueda omnibox (ahora protegido)
-app.get('/api/buscar', authMiddleware, (req, res) => {
-  const query = (req.query.q || '').trim().toLowerCase();
-  const limite = parseInt(req.query.limite) || 50;
-  const pagina = parseInt(req.query.pagina) || 1; // 1-based
-  const { lista_precios: listaPreciosUsuario = 'distribuidores' } = req.user; // Default a distribuidores
+function normalizeSearchText(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
-  if (!query) {
+function buildSearchText(item = {}) {
+  const values = [];
+
+  const primaryKeys = [
+    'codigo',
+    'codigo_tercero',
+    'codigoTercero',
+    'cod_tercero',
+    'descripcion',
+    'marca',
+    'hoja_origen',
+    'nombre',
+    'sku',
+    'part_number'
+  ];
+
+  for (const key of primaryKeys) {
+    if (item[key] !== undefined && item[key] !== null && item[key] !== '') {
+      values.push(item[key]);
+    }
+  }
+
+  Object.keys(item).forEach((key) => {
+    const lowerKey = key.toLowerCase();
+    if (/codigo|terc|desc|marca|origen|nombre|sku|part/i.test(lowerKey) && item[key] !== undefined && item[key] !== null && item[key] !== '') {
+      values.push(item[key]);
+    }
+  });
+
+  if (Array.isArray(item.datos_raw)) {
+    values.push(...item.datos_raw);
+  }
+
+  if (Array.isArray(item.raw)) {
+    values.push(...item.raw);
+  }
+
+  return values
+    .map(value => normalizeSearchText(value))
+    .filter(Boolean)
+    .join(' ');
+}
+
+app.get('/api/buscar', authMiddleware, (req, res) => {
+  const rawQuery = (req.query.q || '').trim();
+  const limite = Math.max(1, Math.min(parseInt(req.query.limite) || 50, 200));
+  const pagina = Math.max(1, parseInt(req.query.pagina) || 1);
+  const { lista_precios: listaPreciosUsuario = 'distribuidores' } = req.user;
+
+  if (!rawQuery) {
     return res.json({ total: 0, resultados: [] });
   }
 
-  const palabras = query.split(' ').filter(p => p.length > 0);
+  const query = normalizeSearchText(rawQuery);
+  const palabras = query.split(/\s+/).filter(Boolean);
   const catalogoActivo = repuestos[listaPreciosUsuario] || [];
 
   const filtrados = catalogoActivo.filter(item => {
-    // Se construye una cadena de texto con todos los datos relevantes del producto para la búsqueda.
-    const textoBuscable = [
-      item.codigo,
-      item.descripcion,
-      item.marca,
-      item.hoja_origen // También busca en el nombre de la categoría/hoja
-    ].filter(Boolean).join(' ').toLowerCase();
-
+    const textoBuscable = buildSearchText(item);
     return palabras.every(palabra => textoBuscable.includes(palabra));
   });
 
@@ -440,7 +488,7 @@ app.get('/api/buscar', authMiddleware, (req, res) => {
 
   res.json({
     total,
-    pagina: Math.max(1, pagina),
+    pagina: Math.min(Math.max(1, pagina), totalPages),
     per_page: limite,
     total_pages: totalPages,
     resultados

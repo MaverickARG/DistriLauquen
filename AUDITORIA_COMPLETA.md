@@ -649,3 +649,68 @@ Esta auditoría fue realizada el **2026-08-18**.
 **Auditor:** GitHub Copilot  
 **Estado:** COMPLETADO  
 **Confidencialidad:** PRIVADO
+
+---
+
+## 🔁 AUDITORÍA DE SEGUIMIENTO - 2026-08-18
+
+### Alcance y evidencia
+
+Se revisaron los cambios de los commits `a016d57`, `53b3fc2` y `123e7f5`, el código de backend/frontend y las dependencias instaladas. También se ejecutaron:
+
+- `node --check backend/index.js` → correcto.
+- `frontend/npm run build` → correcto.
+- `frontend/npm run lint` → falla porque no existe configuración ESLint.
+- `backend/npm audit --audit-level=high` → 1 vulnerabilidad alta.
+- `frontend/npm audit --audit-level=high` → 4 vulnerabilidades: 1 alta y 3 moderadas.
+
+### Estado actualizado
+
+**Riesgo general: MEDIO-ALTO.** Los cambios redujeron los riesgos críticos de la auditoría anterior, pero no conviene considerar el sitio completamente listo para producción.
+
+#### ✅ Corregido o mejorado
+
+- CORS restringido mediante `FRONTEND_URL`.
+- Helmet habilitado para cabeceras HTTP de seguridad.
+- Rate limiting en login, registro y recuperación de contraseña.
+- `execFile()` con timeout reemplaza `exec()` para el script Python.
+- `JWT_SECRET` y `JWT_RESET_SECRET` son obligatorios; `JWT_SECRET` exige 32 caracteres.
+- Contraseñas fuertes en registro, cambio propio y recuperación.
+- Contraseña administrativa generada si no se configura.
+- Existe `.env.example` con instrucciones de configuración.
+- El build de producción del frontend finaliza correctamente.
+
+#### 🔴 Alto riesgo activo
+
+1. **Nodemailer vulnerable.** `backend/package.json` fija `6.9.14`; `npm audit` reporta una vulnerabilidad alta y recomienda una actualización con cambio mayor. Debe evaluarse y actualizarse a una versión corregida, probando el envío SMTP.
+2. **Token de acceso en `localStorage`.** `frontend/src/AuthContext.jsx` y `frontend/src/components/fetchWithAuth.js` exponen el JWT a cualquier XSS. Migrar a cookie `httpOnly`, `secure`, `sameSite` y protección CSRF.
+3. **JWT de acceso válido durante 24 horas.** El login y la actualización de perfil generan tokens con `expiresIn: '1d'`. Reducir el access token y añadir refresh token con revocación.
+4. **Multer 1.x obsoleto.** La instalación usa `1.4.5-lts.2` y npm la marca como afectada por vulnerabilidades corregidas en 2.x. Actualizar y validar el endpoint de carga.
+
+#### 🟠 Riesgo medio activo
+
+1. **Cambio de contraseña administrativo débil.** `/api/admin/clientes/:id/password` solo exige 6 caracteres, mientras que el resto de flujos exige contraseña fuerte. Un administrador puede establecer una contraseña débil.
+2. **Carga de archivos sin límites.** `multer` no define `limits`, `fileFilter` ni validación de MIME/extensión. Un usuario administrador autenticado puede provocar consumo de disco o procesar archivos no Excel.
+3. **Paginación sin límites.** `/api/buscar` acepta `limite` negativo, cero, `NaN` o valores enormes. Acotar `limite` y `pagina` antes de usar `slice()`.
+4. **Credencial generada con `Math.random()` y expuesta en logs.** La contraseña inicial debe generarse con `crypto.randomBytes`/`randomInt`; evitar imprimir secretos en logs persistentes.
+5. **Sin invalidación inmediata de JWT.** El logout solo elimina el token del navegador; un token robado sigue válido hasta expirar. Se resuelve junto con cookies/refresh tokens.
+6. **Sin backup automatizado de SQLite.** La base de datos local no tiene respaldo ni restauración documentada; una pérdida del volumen implica pérdida de usuarios.
+
+#### 🟡 Calidad y mantenimiento
+
+- `npm run lint` está configurado, pero no puede ejecutarse porque falta un archivo de configuración ESLint.
+- No hay pruebas automatizadas para autenticación, autorización, carga de archivos ni recuperación de contraseña.
+- El endpoint administrativo devuelve el objeto `user` completo en algunas respuestas; verificar que nunca incluya `password` antes de enviarlo al cliente.
+- El registro recibe `confirmPassword`, pero el backend no comprueba que coincida con `password`.
+
+### Prioridad recomendada
+
+1. Actualizar Nodemailer y Multer, revisar el resultado de `npm audit` y probar el flujo de email/carga.
+2. Migrar autenticación a cookies `httpOnly` con access tokens cortos y refresh tokens revocables.
+3. Aplicar la misma política de contraseña al endpoint administrativo.
+4. Añadir límites de archivo y paginación, y reemplazar `Math.random()` para secretos.
+5. Configurar ESLint y pruebas de integración antes del próximo despliegue.
+
+### Conclusión
+
+Los cambios recientes corrigieron los problemas más evidentes de CORS, ejecución de comandos, secretos obligatorios, rate limiting y validación básica. El build funciona y el backend es sintácticamente válido, pero las vulnerabilidades de dependencias, el almacenamiento del JWT y la duración del token mantienen un riesgo relevante. Se recomienda resolver los cuatro hallazgos de alto riesgo antes de declarar la auditoría aprobada para producción.
