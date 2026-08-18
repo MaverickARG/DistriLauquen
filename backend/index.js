@@ -318,6 +318,55 @@ const DISTRIBUIDORES_JSON_PATH = path.join(__dirname, 'repuestos_distribuidores.
 let repuestos = {
   distribuidores: []
 };
+let indicesBusqueda = {
+  distribuidores: []
+};
+
+function getItemCodeValues(item = {}) {
+  const values = [
+    item.codigo,
+    item.codigo_tercero,
+    item.codigoTercero,
+    item.cod_tercero,
+    item.sku,
+    item.part_number
+  ];
+
+  // Los catálogos antiguos guardan el código primario en datos_raw[0].
+  if (Array.isArray(item.datos_raw)) {
+    values.push(item.datos_raw[0]);
+  }
+
+  return values
+    .filter(value => value !== undefined && value !== null && value !== '')
+    .map(value => normalizeSearchText(value));
+}
+
+function buildSearchIndex(catalogo = []) {
+  return catalogo.map(item => {
+    const codeValues = getItemCodeValues(item);
+    const descriptorValues = [
+      item.descripcion,
+      item.marca,
+      item.hoja_origen,
+      item.nombre
+    ];
+
+    if (Array.isArray(item.datos_raw)) {
+      descriptorValues.push(...item.datos_raw.slice(1, -1));
+    }
+
+    return {
+      item,
+      codeText: ` ${codeValues.join(' ')} `,
+      descriptorText: ` ${descriptorValues
+        .filter(value => value !== undefined && value !== null && value !== '')
+        .map(value => normalizeSearchText(value))
+        .filter(Boolean)
+        .join(' ')} `
+    };
+  });
+}
 
 function cargarRepuestos() {
   try {
@@ -327,10 +376,12 @@ function cargarRepuestos() {
     } else {
       repuestos.distribuidores = [];
     }
+    indicesBusqueda.distribuidores = buildSearchIndex(repuestos.distribuidores);
     console.log(`✅ Catálogo recargado: ${repuestos.distribuidores.length} repuestos (Distribuidores).`);
   } catch (error) {
     console.error('❌ Error al cargar JSONs de repuestos:', error.message);
     repuestos = { distribuidores: [] }; // Si hay error, vaciamos para no servir datos viejos
+    indicesBusqueda = { distribuidores: [] };
   }
 }
 
@@ -474,12 +525,20 @@ app.get('/api/buscar', authMiddleware, (req, res) => {
 
   const query = normalizeSearchText(rawQuery);
   const palabras = query.split(/\s+/).filter(Boolean);
-  const catalogoActivo = repuestos[listaPreciosUsuario] || [];
+  const indiceActivo = indicesBusqueda[listaPreciosUsuario] || [];
 
-  const filtrados = catalogoActivo.filter(item => {
-    const textoBuscable = buildSearchText(item);
-    return palabras.every(palabra => textoBuscable.includes(palabra));
-  });
+  const filtrados = indiceActivo.filter(({ item, codeText, descriptorText }) => {
+    return palabras.every(palabra => {
+      const esCodigoNumerico = /^\d+$/.test(palabra);
+      const palabraConLimites = ` ${palabra} `;
+
+      if (esCodigoNumerico) {
+        return codeText.includes(palabraConLimites);
+      }
+
+      return descriptorText.includes(palabraConLimites) || codeText.includes(palabraConLimites);
+    });
+  }).map(({ item }) => item);
 
   const total = filtrados.length;
   const totalPages = Math.max(1, Math.ceil(total / limite));

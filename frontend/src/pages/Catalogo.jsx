@@ -41,11 +41,15 @@ export default function Catalogo() {
       return;
     }
 
+    const controller = new AbortController();
     const timer = setTimeout(() => {
-      buscarRepuestos(pagina);
+      buscarRepuestos(pagina, controller.signal);
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [busqueda, pagina]);
 
   // Redirigir si no está logueado
@@ -55,11 +59,12 @@ export default function Catalogo() {
     }
   }, [token, navigate]);
 
-  const buscarRepuestos = async (paginaReq = 1) => {
+  const buscarRepuestos = async (paginaReq = 1, signal) => {
     if (!token) return; // No buscar si no hay token
     setCargando(true);
     try {
       const res = await fetch(`${apiUrl}/api/buscar?q=${encodeURIComponent(busqueda)}&limite=100&pagina=${paginaReq}`, {
+        signal,
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -74,7 +79,9 @@ export default function Catalogo() {
       setPagina(data.pagina || 1);
       setTotalPages(data.total_pages || 1);
     } catch (err) {
-      console.error("Error conectando con la API:", err);
+      if (err.name !== 'AbortError') {
+        console.error("Error conectando con la API:", err);
+      }
     } finally {
       setCargando(false);
     }
@@ -181,6 +188,8 @@ export default function Catalogo() {
         <div style={{ display: 'grid', gap: '12px' }}>
           {resultados.map((item, index) => {
             const precioVenta = calcularPrecioVenta(item.precio);
+            const marca = item.marca || item.hoja_origen;
+            const codigoPrincipal = item.codigo || (Array.isArray(item.datos_raw) ? item.datos_raw[0] : null);
 
             return (
               <div 
@@ -197,21 +206,26 @@ export default function Catalogo() {
                 }}
               >
                 <div style={{ flex: 1, paddingRight: '16px' }}>
-                  {/* Fila superior con Marca (sin mostrar 'hoja_origen') */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    {item.marca && (
+                  {/* Fila superior con marca y código principal */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                    {marca && (
                       <span style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--brand-yellow)', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-                        {item.marca}
+                        {marca}
+                      </span>
+                    )}
+                    {marca && codigoPrincipal && <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>-</span>}
+                    {codigoPrincipal && (
+                      <span style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                        Código: {codigoPrincipal}
                       </span>
                     )}
                   </div>
 
-                  {/* Descripción principal y códigos (Código Principal + Código Tercero si existe) */}
+                  {/* Descripción principal y código tercero si existe */}
                   <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-primary)', fontWeight: '500', marginBottom: '4px' }}>
                     {item.descripcion || 'Sin descripción'}
                   </p>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--metal-gray)', fontFamily: 'monospace', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <span><strong>Cód:</strong> {item.codigo}</span>
                     {(() => {
                       const altKeys = Object.keys(item).filter(k => /tercer|tercero|codigoter|codigo_tercero|cod_terc/i.test(k));
                       if (altKeys.length > 0) {
